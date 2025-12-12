@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 const Sidebar = () => {
   return (
-    <div className="w-80 h-screen bg-gray-900 text-white p-5 flex flex-col flex-shrink-0">
+    <div className="w-96 h-screen bg-gray-900 text-white p-5 flex flex-col flex-shrink-0">
       
       {/* Logo Area */}
       <h1 className="text-2xl font-bold mb-10 text-blue-400">FYP Diagram Gen</h1>

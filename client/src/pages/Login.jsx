@@ -1,119 +1,118 @@
 import React from 'react'
 import { Link } from "react-router-dom";
+// import { Workflow } from 'lucide-react'; // Ya 'Network', 'Share2' bhi try kar sakte ho
 
 const Login = () => {
     
-  // State Management ke liye function tayyar hai
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Login Form Submitted (Ready for state)');
-    // TODO: Member 1 yahan data utha kar API call karenge
   };
 
   return (
-    <div className="wrapper h-screen w-full font-sans bg-gray-50">
+    // Wrapper: Default bg-white for clean look
+    <div className="wrapper h-screen w-full font-sans bg-white overflow-hidden">
       <div className="flex h-full">
+        
         {/* ================= LEFT SIDE: LOGIN FORM ================= */}
         <div
-          className="w-full md:w-[448px] bg-white h-screen flex flex-col gap-5 px-8 md:px-12 py-10 overflow-y-auto shadow-xl z-10"
-          style={{ scrollbarWidth: "none" }}
+          // Added: Subtle shadow on the right side to separate from image
+          className="w-full md:w-[480px] bg-white h-screen flex flex-col gap-6 px-8 md:px-12 py-10 overflow-y-auto shadow-[10px_0_30px_rgba(0,0,0,0.05)] z-20 relative"
+          // style={{ scrollbarWidth: "none" }}
         >
           {/* --- Logo & Heading --- */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center mt-4">
             <img
-              src="/assets/images/logo.svg"
-              className="mb-7"
-              width="92"
+              src="/assets/images/logo.png"
+              className="mb-6 drop-shadow-l ring-4 ring-blue-600/50 ring-offset-2 drop-shadow-[0_0_10px_rgba(37,99,235,0.6),0_0_35px_rgba(79,70,229,0.5)] rounded-full  scale-110" // Added drop shadow to logo
+              width="100" 
               alt="App Logo"
             />
-            <h4 className="text-[25px] capitalize font-semibold text-gray-800">
-              Login
+            {/* Typography Update: Bolder font, Slate-900 color, tighter tracking */}
+            <h4 className="text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
+              Welcome Back
             </h4>
+            <p className="text-slate-500 text-sm mt-2 font-medium">Please enter your details to login.</p>
           </div>
 
           {/* --- Form Inputs --- */}
-          {/* Social login aur divider hata diye gaye hain */}
-          <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-5 mt-4" onSubmit={handleSubmit}>
+            
+            {/* Email Input */}
             <div className="flex flex-col gap-1.5 items-start">
               <label
                 htmlFor="email"
-                className="text-gray-600 text-sm font-medium ml-1"
+                className="text-slate-700 text-sm font-bold ml-1"
               >
                 Email Address
               </label>
               <input
                 id="email"
                 name="email" 
-                className="py-3 px-4 bg-[#F7F7F8] w-full rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50 border border-transparent focus:border-blue-500 transition-all placeholder-gray-400"
+                // PREMIUM INPUT STYLE:
+                // 1. bg-slate-50 (Cleaner than gray)
+                // 2. border-slate-200 (Subtle border)
+                // 3. Focus: Blue Ring (Glow effect)
+                className="py-3.5 px-4 bg-slate-50 w-full rounded-xl outline-none border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-900 placeholder-slate-400 hover:bg-slate-100"
                 type="email"
                 placeholder="name@example.com"
               />
             </div>
 
+            {/* Password Input */}
             <div className="flex flex-col gap-1.5 items-start">
               <label
                 htmlFor="password"
-                className="capitalize text-gray-600 text-sm font-medium ml-1"
+                className="capitalize text-slate-700 text-sm font-bold ml-1"
               >
                 Password
               </label>
               <input
                 id="password"
                 name="password" 
-                className="py-3 px-4 bg-[#F7F7F8] w-full rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50 border border-transparent focus:border-blue-500 transition-all placeholder-gray-400"
+                className="py-3.5 px-4 bg-slate-50 w-full rounded-xl outline-none border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-900 placeholder-slate-400 hover:bg-slate-100"
                 type="password"
                 placeholder="Enter your password"
               />
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex justify-between items-center text-sm mt-1 text-gray-500">
-              <label className="flex items-center gap-2 cursor-pointer hover:text-gray-700 select-none">
-                <input
-                  type="checkbox"
-                  name="rememberMe"
-                  className="w-4 h-4 accent-blue-600"
-                />
-                Remember me
-              </label>
+           
 
-              <Link
-                to="#"
-                className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
-              >
-                Reset password?
-              </Link>
-            </div>
-
-            {/* Submit Button (Form ke andar) */}
+            {/* Submit Button (HERO ELEMENT) */}
+            {/* Changed from Solid Purple to Gradient Blue-Indigo for depth */}
             <button
               type="submit"
-              className="bg-[#605BFF] hover:bg-[#4f4add] active:scale-[0.98] w-full py-3.5 px-5 text-white rounded-xl transition-all font-semibold text-lg shadow-lg shadow-blue-500/30 mt-4"
+              className="mt-2 w-full py-3.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200"
             >
               Login
             </button>
           </form>
 
           {/* --- Footer Link --- */}
-          <div className="text-center text-sm text-gray-500 mt-2">
+          <div className="text-center text-sm text-slate-500 mt-6 mb-4">
             Don't have an account yet?{" "}
             <Link
               to="/signup"
-              className="text-blue-600 font-bold hover:underline ml-1"
+              className="text-blue-600 font-bold hover:text-blue-700 hover:underline ml-1"
             >
               Create New Account
             </Link>
           </div>
         </div>
 
-        {/* ================= RIGHT SIDE: ILLUSTRATION ================= */}
-        <div className="hidden md:flex bg-[#FAFAFA] flex-1 items-center justify-center h-full relative">
+        {/* ================= RIGHT SIDE: ILLUSTRATION (High Contrast) ================= */}
+        {/* Changed background to Slate-900 (Dark) to make the white form pop */}
+        <div className="bg-[#FAFAFA] w-[80%] flex h-full">
+          
+       
+
           <img
-            src="/assets/images/signup-img.svg"
-            className="max-w-[85%] max-h-[85%] object-contain drop-shadow-sm"
+            src="/public/assets/images/chai.jpg"
+            className="object-cover"
             alt="Login Illustration"
           />
         </div>
+
       </div>
     </div>
   );
