@@ -67,7 +67,7 @@ const Sidebar = ({
         </button>
 
         {/* Logo/Branding Section */}
-        <div className="p-4 sm:p-6 flex items-center border-b border-gray-700/50">
+        <div className="p-4 mt-3 sm:p-6 flex items-center border-b border-gray-700/50">
           <img
             src="/assets/images/logo.png"
             alt="SmartUML Logo"

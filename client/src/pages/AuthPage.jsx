@@ -54,7 +54,7 @@ const AuthPage = () => {
   return (
     <div
       className="w-screen h-screen relative bg-cover bg-center flex items-center justify-center overflow-y-auto sm:overflow-hidden"
-      style={{ backgroundImage: "url('/assets/images/login.jpg')" }}
+      style={{ backgroundImage: "url('/assets/images/Auth.jpg')" }}
     >
       {/* Background Overlay */}
       <div className="absolute inset-0 bg-black/40"></div>

@@ -1,102 +1,118 @@
 import React from "react";
-import { Link } from "react-router-dom";
-// import { Workflow } from 'lucide-react'; // Ya 'Network', 'Share2' bhi try kar sakte ho
+import { motion } from "framer-motion";
 
 const Login = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Login Form Submitted (Ready for state)");
+    console.log("Login submitted");
   };
 
+  // Framer Motion variants for the card
+  const cardVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: "easeOut" },
+    },
+  };
+
+  // Button hover animation
+  const buttonHover = { scale: 1.05 };
+  const buttonTap = { scale: 0.98 };
+
   return (
-    // Wrapper: Default bg-white for clean look
-    <div className="wrapper h-screen w-full font-sans bg-white overflow-hidden">
-      <div className="flex flex-col md:flex-row h-full">
-        {/* ================= LEFT SIDE: LOGIN FORM ================= */}
-        <div className="w-full md:w-[480px] bg-white min-h-screen md:h-screen flex flex-col justify-center gap-6 px-6 sm:px-8 md:px-12 py-10 shadow-none md:shadow-[10px_0_30px_rgba(0,0,0,0.05)] z-20 relative">
-          {/* --- Logo & Heading --- */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="mb-4 w-[120px] h-[120px] flex items-center justify-center">
-              <img
-                src="/assets/images/logo.png"
-                className="drop-shadow-[0_0_5px_rgba(37,99,235,0.4)] rounded-full w-full h-full object-contain"
-                alt="App Logo"
-              />
-            </div>
-            <h4 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
-              Welcome Back
-            </h4>
-            <p className="text-slate-500 text-sm mt-2 font-medium text-center">
-              Log in to continue your workspace
-            </p>
+    <div
+      className="w-screen h-screen relative bg-cover bg-center flex items-center justify-center overflow-y-hidden"
+      style={{ backgroundImage: "url('/assets/images/login.jpg')" }}
+    >
+      {/* Overlay to dim background */}
+      <div className="absolute inset-0 bg-black/40"></div>
+
+      {/* Glassmorphic card with Framer Motion animation */}
+      <motion.div
+        className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl p-12 max-w-lg w-full relative z-10"
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover={{
+          boxShadow: `
+  0 5px 25px rgba(255, 255, 255, 0.25), 
+  0 0 15px rgba(37, 99, 235, 0.2)
+`,
+        }}
+        transition={{ type: "spring", stiffness: 150, damping: 18 }}
+        style={{ transformOrigin: "center center" }}
+      >
+        {/* Logo and Heading */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="mb-4 w-[100px] h-[100px] flex items-center justify-center">
+            <img
+              src="/assets/images/logo.png"
+              className="drop-shadow-[0_0_10px_rgba(37,99,235,0.5)] rounded-full w-full h-full object-contain"
+              alt="App Logo"
+            />
           </div>
-
-          {/* --- Form Inputs --- */}
-          <form className="flex flex-col gap-5 mt-4" onSubmit={handleSubmit}>
-            {/* Email Input */}
-            <div className="flex flex-col gap-1.5 items-start w-full">
-              <label
-                htmlFor="email"
-                className="text-slate-700 text-sm font-bold ml-1"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="name@example.com"
-                className="py-3.5 px-4 bg-slate-50 w-full rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-900 placeholder-slate-400 hover:bg-slate-100"
-              />
-            </div>
-
-            {/* Password Input */}
-            <div className="flex flex-col gap-1.5 items-start w-full">
-              <label
-                htmlFor="password"
-                className="capitalize text-slate-700 text-sm font-bold ml-1"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                className="py-3.5 px-4 bg-slate-50 w-full rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-900 placeholder-slate-400 hover:bg-slate-100"
-              />
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="mt-4 w-full py-3.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200"
-            >
-              Login
-            </button>
-          </form>
-
-          {/* --- Footer Link --- */}
-          <div className="text-center text-sm text-slate-500 mt-6 mb-4">
-            Don't have an account yet?{" "}
-            <Link
-              to="/signup"
-              className="text-blue-600 font-bold hover:text-blue-700 hover:underline ml-1"
-            >
-              Create New Account
-            </Link>
-          </div>
+          <h4 className="text-3xl font-bold text-white tracking-tight capitalize">
+            Welcome Back
+          </h4>
+          <p className="text-white/80 text-sm mt-2 font-medium text-center">
+            Log in to continue your workspace
+          </p>
         </div>
 
-        {/* ================= RIGHT SIDE: IMAGE ================= */}
-        <div className="hidden md:flex bg-[#FAFAFA] w-full md:w-[calc(100%-480px)] h-full ">
-          <img
-            src="/assets/images/chai.jpg"
-            className="object-cover object-right w-full h-full  "
-            alt="Login Image"
-          />
-        </div>
-      </div>
+        {/* <h1 className="text-4xl font-bold text-white text-center mb-8">Login</h1> */}
+
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+          {/* Email */}
+          <div className="flex flex-col">
+            <label htmlFor="email" className="text-white font-semibold mb-2">
+              Email
+            </label>
+            <motion.input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="name@example.com"
+              className="py-4 px-5 text-lg rounded-xl border border-white/30 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              whileFocus={{ scale: 1.02 }}
+            />
+          </div>
+
+          {/* Password */}
+          <div className="flex flex-col">
+            <label htmlFor="password" className="text-white font-semibold mb-2">
+              Password
+            </label>
+            <motion.input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Enter your password"
+              className="py-4 px-5 text-lg rounded-xl border border-white/30 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              whileFocus={{ scale: 1.02 }}
+            />
+          </div>
+
+          {/* Submit button */}
+          <motion.button
+            type="submit"
+            className="mt-6 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-lg shadow-xl"
+            whileHover={buttonHover}
+            whileTap={buttonTap}
+          >
+            Log in
+          </motion.button>
+        </form>
+
+        {/* Signup link */}
+        <p className="text-white text-center mt-6 text-sm">
+          Don&apos;t have an account?{" "}
+          <a href="/signup" className="font-semibold hover:underline">
+            Signup
+          </a>
+        </p>
+      </motion.div>
     </div>
   );
 };
