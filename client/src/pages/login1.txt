@@ -1,0 +1,120 @@
+import React from "react";
+import { motion } from "framer-motion";
+
+const Login = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Login submitted");
+  };
+
+  // Framer Motion variants for the card
+  const cardVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: "easeOut" },
+    },
+  };
+
+  // Button hover animation
+  const buttonHover = { scale: 1.05 };
+  const buttonTap = { scale: 0.98 };
+
+  return (
+    <div
+      className="w-screen h-screen relative bg-cover bg-center flex items-center justify-center overflow-y-hidden"
+      style={{ backgroundImage: "url('/assets/images/login.jpg')" }}
+    >
+      {/* Overlay to dim background */}
+      <div className="absolute inset-0 bg-black/40"></div>
+
+      {/* Glassmorphic card with Framer Motion animation */}
+      <motion.div
+        className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl p-12 max-w-lg w-full relative z-10"
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover={{
+          boxShadow: `
+  0 5px 25px rgba(255, 255, 255, 0.25), 
+  0 0 15px rgba(37, 99, 235, 0.2)
+`,
+        }}
+        transition={{ type: "spring", stiffness: 150, damping: 18 }}
+        style={{ transformOrigin: "center center" }}
+      >
+        {/* Logo and Heading */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="mb-4 w-[100px] h-[100px] flex items-center justify-center">
+            <img
+              src="/assets/images/logo.png"
+              className="drop-shadow-[0_0_10px_rgba(37,99,235,0.5)] rounded-full w-full h-full object-contain"
+              alt="App Logo"
+            />
+          </div>
+          <h4 className="text-3xl font-bold text-white tracking-tight capitalize">
+            Welcome Back
+          </h4>
+          <p className="text-white/80 text-sm mt-2 font-medium text-center">
+            Log in to continue your workspace
+          </p>
+        </div>
+
+        {/* <h1 className="text-4xl font-bold text-white text-center mb-8">Login</h1> */}
+
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+          {/* Email */}
+          <div className="flex flex-col">
+            <label htmlFor="email" className="text-white font-semibold mb-2">
+              Email
+            </label>
+            <motion.input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="name@example.com"
+              className="py-4 px-5 text-lg rounded-xl border border-white/30 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              whileFocus={{ scale: 1.02 }}
+            />
+          </div>
+
+          {/* Password */}
+          <div className="flex flex-col">
+            <label htmlFor="password" className="text-white font-semibold mb-2">
+              Password
+            </label>
+            <motion.input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Enter your password"
+              className="py-4 px-5 text-lg rounded-xl border border-white/30 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              whileFocus={{ scale: 1.02 }}
+            />
+          </div>
+
+          {/* Submit button */}
+          <motion.button
+            type="submit"
+            className="mt-6 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-lg shadow-xl"
+            whileHover={buttonHover}
+            whileTap={buttonTap}
+          >
+            Log in
+          </motion.button>
+        </form>
+
+        {/* Signup link */}
+        <p className="text-white text-center mt-6 text-sm">
+          Don&apos;t have an account?{" "}
+          <a href="/signup" className="font-semibold hover:underline">
+            Signup
+          </a>
+        </p>
+      </motion.div>
+    </div>
+  );
+};
+
+export default Login;

@@ -1,0 +1,104 @@
+import React from "react";
+import { Link } from "react-router-dom";
+// import { Workflow } from 'lucide-react'; // Ya 'Network', 'Share2' bhi try kar sakte ho
+
+const Login = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Login Form Submitted (Ready for state)");
+  };
+
+  return (
+    // Wrapper: Default bg-white for clean look
+    <div className="wrapper h-screen w-full font-sans bg-white overflow-hidden">
+      <div className="flex flex-col md:flex-row h-full">
+        {/* ================= LEFT SIDE: LOGIN FORM ================= */}
+        <div className="w-full md:w-[480px] bg-white min-h-screen md:h-screen flex flex-col justify-center gap-6 px-6 sm:px-8 md:px-12 py-10 shadow-none md:shadow-[10px_0_30px_rgba(0,0,0,0.05)] z-20 relative">
+          {/* --- Logo & Heading --- */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="mb-4 w-[120px] h-[120px] flex items-center justify-center">
+              <img
+                src="/assets/images/logo.png"
+                className="drop-shadow-[0_0_5px_rgba(37,99,235,0.4)] rounded-full w-full h-full object-contain"
+                alt="App Logo"
+              />
+            </div>
+            <h4 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
+              Welcome Back
+            </h4>
+            <p className="text-slate-500 text-sm mt-2 font-medium text-center">
+              Log in to continue your workspace
+            </p>
+          </div>
+
+          {/* --- Form Inputs --- */}
+          <form className="flex flex-col gap-5 mt-4" onSubmit={handleSubmit}>
+            {/* Email Input */}
+            <div className="flex flex-col gap-1.5 items-start w-full">
+              <label
+                htmlFor="email"
+                className="text-slate-700 text-sm font-bold ml-1"
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="name@example.com"
+                className="py-3.5 px-4 bg-slate-50 w-full rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-900 placeholder-slate-400 hover:bg-slate-100"
+              />
+            </div>
+
+            {/* Password Input */}
+            <div className="flex flex-col gap-1.5 items-start w-full">
+              <label
+                htmlFor="password"
+                className="capitalize text-slate-700 text-sm font-bold ml-1"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                className="py-3.5 px-4 bg-slate-50 w-full rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-900 placeholder-slate-400 hover:bg-slate-100"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="mt-4 w-full py-3.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200"
+            >
+              Login
+            </button>
+          </form>
+
+          {/* --- Footer Link --- */}
+          <div className="text-center text-sm text-slate-500 mt-6 mb-4">
+            Don't have an account yet?{" "}
+            <Link
+              to="/signup"
+              className="text-blue-600 font-bold hover:text-blue-700 hover:underline ml-1"
+            >
+              Create New Account
+            </Link>
+          </div>
+        </div>
+
+        {/* ================= RIGHT SIDE: IMAGE ================= */}
+        <div className="hidden md:flex bg-[#FAFAFA] w-full md:w-[calc(100%-480px)] h-full ">
+          <img
+            src="/assets/images/chai.jpg"
+            className="object-cover object-right w-full h-full  "
+            alt="Login Image"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

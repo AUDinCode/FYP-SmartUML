@@ -10,27 +10,28 @@ const Signup = () => {
   return (
     // Wrapper: Default bg-white for clean look
     <div className="wrapper h-screen w-full font-sans bg-white overflow-hidden">
-      <div className="flex h-full">
+      <div className="flex flex-col md:flex-row h-full">
         {/* ================= LEFT SIDE: SIGNUP FORM ================= */}
         <div
           // Matching Login Container styles exactly
           // Width: 480px, Padding: py-10, Shadow: Right side
-          className="w-full md:w-[480px] bg-white h-screen flex flex-col gap-6 px-8 md:px-12 py-10 shadow-[10px_0_30px_rgba(0,0,0,0.05)] z-20 relative"
-          // style={{ scrollbarWidth: "none" }}
+          className="w-full md:w-[480px] bg-white min-h-screen md:h-screen flex flex-col gap-6 px-6 sm:px-8 md:px-12 overflow-y-auto py-10 md:justify-center shadow-none md:shadow-[10px_0_30px_rgba(0,0,0,0.05)] z-20 relative"
+          style={{ scrollbarWidth: "none" }}
         >
           {/* --- Logo & Heading --- */}
-          <div className="flex flex-col items-center mt-2">
-            <img
-              src="/assets/images/logo.png"
-              className="mb-6 drop-shadow-l ring-4 ring-blue-600/50 ring-offset-2 drop-shadow-[0_0_10px_rgba(37,99,235,0.6),0_0_35px_rgba(79,70,229,0.5)] rounded-full  scale-110"
-              width="100"
-              alt="App Logo"
-            />
+          <div className="flex flex-col items-center mb-6">
+            <div className="mb-4 w-[120px] h-[120px] flex items-center justify-center">
+              <img
+                src="/assets/images/logo.png"
+                className="drop-shadow-[0_0_5px_rgba(37,99,235,0.4)] rounded-full w-full h-full object-contain"
+                alt="App Logo"
+              />
+            </div>
             {/* Typography matches Login: Extrabold, Slate-900, Tight Tracking */}
-            <h4 className="text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
+            <h4 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
               Create Account
             </h4>
-            <p className="text-slate-500 text-sm mt-2 font-medium">
+            <p className="text-slate-500 text-sm mt-2 font-medium text-center">
               Join us to visualize your ideas.
             </p>
           </div>
@@ -56,7 +57,7 @@ const Signup = () => {
             </div> */}
 
             {/* Email Address */}
-            <div className="flex flex-col gap-1.5 items-start">
+            <div className="flex flex-col gap-1.5 items-start w-full">
               <label
                 htmlFor="email"
                 className="text-slate-700 text-sm font-bold ml-1"
@@ -73,7 +74,7 @@ const Signup = () => {
             </div>
 
             {/* Username */}
-            <div className="flex flex-col gap-1.5 items-start">
+            <div className="flex flex-col gap-1.5 items-start w-full">
               <label
                 htmlFor="username"
                 className="text-slate-700 text-sm font-bold ml-1"
@@ -128,13 +129,13 @@ const Signup = () => {
           </div>
         </div>
 
-        {/* ================= RIGHT SIDE: ILLUSTRATION (Dark Theme Match) ================= */}
-        {/* Same Slate-900 Background to make form pop */}
-        <div className="bg-[#FAFAFA] w-[80%] flex items-center justify-center h-full">
+        {/* ================= RIGHT SIDE: IMAGE ================= */}
+
+        <div className="hidden md:flex bg-[#FAFAFA] w-full md:w-[calc(100%-480px)] h-full">
           <img
-            src="/assets/images/login-img.svg"
-            className="max-w-[650px]"
-            alt="Login Illustration"
+            src="/assets/images/login(3).jpg"
+            className="object-cover object-center w-full h-full"
+            alt="Signup Image"
           />
         </div>
       </div>
