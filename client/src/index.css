@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+@layer components {
+  .uml-node-actor,
+  .uml-node-usecase {
+    @apply absolute hidden xl:flex items-center justify-center font-bold shadow-md backdrop-blur-sm transition-all text-white bg-white/20 border border-white/20;
+  }
+
+  .uml-node-actor {
+    @apply w-12 h-12 sm:w-14 sm:h-14 rounded-full;
+  }
+
+  .uml-node-usecase {
+    @apply w-24 h-14 sm:w-28 sm:h-16 rounded-full;
+  }
+}

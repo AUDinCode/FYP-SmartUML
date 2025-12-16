@@ -1,4 +1,3 @@
-// components/Input.jsx
 import { motion } from "framer-motion";
 
 const Input = ({ placeholder, type = "text", className, ...props }) => {
