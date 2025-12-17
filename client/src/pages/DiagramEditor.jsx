@@ -95,7 +95,7 @@ const DiagramEditor = () => {
             onClick={handleBack}
             className="bg-gray-700 hover:bg-gray-600 text-gray-300 !py-2 !px-3"
           >
-            <ArrowLeft size={18} className="mr-2" /> Back to Dashboard
+            <ArrowLeft size={18} /> Back to Dashboard
           </Button>
           <h1 className="text-xl font-semibold">
             Diagram Customization:{" "}
@@ -108,7 +108,7 @@ const DiagramEditor = () => {
             onClick={handleSave}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <Save size={18} className="mr-2" /> Save Changes
+            <Save size={18} /> Save Changes
           </Button>
 
           {/* Export Dropdown */}

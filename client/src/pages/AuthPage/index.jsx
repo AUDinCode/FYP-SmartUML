@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { User } from "lucide-react";
-
+import { useNavigate } from "react-router-dom";
 import {
   cardVariants,
   buttonHover,
   buttonTap,
   umlNodeAnimation,
-  nodes,        // Data imported hi rakhein taake file clean rahe
-  connections 
+  nodes, // Data imported hi rakhein taake file clean rahe
+  connections,
 } from "./authVariants";
 
 const AuthPage = () => {
-  // hoveredNode hata diya taake crash na ho
+  const navigate = useNavigate(); // 👈 Hook banaya
   const [isSignup, setIsSignup] = useState(false);
 
   // Form States (Logic)
@@ -26,6 +26,7 @@ const AuthPage = () => {
       console.log("Signup:", { username, email, password });
     } else {
       console.log("Login:", { email, password });
+      navigate("/dashboard"); // 👈 Dashboard par bhej diya
     }
   };
 
@@ -69,7 +70,9 @@ const AuthPage = () => {
       {nodes.map((node) => (
         <motion.div
           key={node.id}
-          className={node.type === "actor" ? "uml-node-actor" : "uml-node-usecase"}
+          className={
+            node.type === "actor" ? "uml-node-actor" : "uml-node-usecase"
+          }
           style={{ top: node.top, left: node.left }}
           animate={umlNodeAnimation.animate}
           transition={umlNodeAnimation.transition}
@@ -118,7 +121,8 @@ const AuthPage = () => {
               <motion.input
                 type="text"
                 placeholder="Your username"
-                value={username} onChange={(e) => setUsername(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="py-3 px-4 sm:py-4 sm:px-5 text-sm sm:text-lg rounded-xl border border-white/30 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 whileFocus={{ scale: 1.02 }}
               />
@@ -131,7 +135,8 @@ const AuthPage = () => {
             <motion.input
               type="email"
               placeholder="name@example.com"
-              value={email} onChange={(e) => setEmail(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="py-3 px-4 sm:py-4 sm:px-5 text-sm sm:text-lg rounded-xl border border-white/30 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-400"
               whileFocus={{ scale: 1.02 }}
             />
@@ -143,7 +148,8 @@ const AuthPage = () => {
             <motion.input
               type="password"
               placeholder="Enter your password"
-              value={password} onChange={(e) => setPassword(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="py-3 px-4 sm:py-4 sm:px-5 text-sm sm:text-lg rounded-xl border border-white/30 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-400"
               whileFocus={{ scale: 1.02 }}
             />
