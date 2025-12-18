@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { User } from "lucide-react";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../../firebase"; // Ye wo file hai jo abhi humne banayi
 import { useNavigate } from "react-router-dom";
 import {
@@ -25,7 +25,7 @@ const AuthPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // 1. Check karein ke khana khali to nahi?
+    // Check karein ke fields khali to nahi
     if (!email || !password) {
       alert("Please fill in all fields");
       return;
@@ -33,19 +33,26 @@ const AuthPage = () => {
 
     try {
       if (isSignup) {
-        // 🆕 SIGNUP (Naya Account)
-        await createUserWithEmailAndPassword(auth, email, password);
-        alert("Account Created Successfully! 🎉");
+        // 🆕 SIGNUP + NAME SAVE
+        // 1. Account banaya
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 2. Naam (Username) save kiya 👇
+        await updateProfile(user, {
+          displayName: username, 
+        });
+
+        alert("Account Created with Name! 🎉");
         navigate("/dashboard");
       } else {
-        // 🔐 LOGIN (Purana Account)
+        // 🔐 LOGIN (Purana logic)
         await signInWithEmailAndPassword(auth, email, password);
         navigate("/dashboard");
       }
     } catch (error) {
-      // ⚠️ Agar password ghalat hua
       console.error(error);
-      alert(error.message); 
+      alert(error.message);
     }
   };
 
