@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { User } from "lucide-react";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase"; // Ye wo file hai jo abhi humne banayi
 import { useNavigate } from "react-router-dom";
 import {
   cardVariants,
@@ -20,13 +22,30 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSignup) {
-      console.log("Signup:", { username, email, password });
-    } else {
-      console.log("Login:", { email, password });
-      navigate("/dashboard"); // 👈 Dashboard par bhej diya
+    
+    // 1. Check karein ke khana khali to nahi?
+    if (!email || !password) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    try {
+      if (isSignup) {
+        // 🆕 SIGNUP (Naya Account)
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert("Account Created Successfully! 🎉");
+        navigate("/dashboard");
+      } else {
+        // 🔐 LOGIN (Purana Account)
+        await signInWithEmailAndPassword(auth, email, password);
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      // ⚠️ Agar password ghalat hua
+      console.error(error);
+      alert(error.message); 
     }
   };
 
