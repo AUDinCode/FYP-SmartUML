@@ -1,38 +1,38 @@
 // src/pages/Dashboard.jsx
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Send, ChevronDown, Code, MessageSquare, ArrowRight } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Send, ChevronDown, MessageSquare, ArrowRight } from "lucide-react";
 
 // Import Custom Components
-import Button from '../components/Button';
-import Card from '../components/Card';
+import Button from "../components/Button";
+import Card from "../components/Card";
 // Input component ab hum use nahi kar rahe kyunke humne textarea use ki hai
 
 // --- UPDATED LIST: Sequence Diagram removed ---
 const DIAGRAM_TYPES = [
-  'Use Case Diagram', 
-  'Class Diagram', 
+  "Use Case Diagram",
+  "Class Diagram",
   // 'Sequence Diagram' removed as requested
-  'Activity Diagram',
+  "Activity Diagram",
 ];
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [requirements, setRequirements] = useState('');
+  const [requirements, setRequirements] = useState("");
   const [selectedType, setSelectedType] = useState(DIAGRAM_TYPES[0]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState(null); // To handle history state
 
   const handleGenerate = () => {
-    if (requirements.trim() === '') return;
+    if (requirements.trim() === "") return;
     setIsGenerating(true);
-    
+
     // API call and Redirect simulation
     setTimeout(() => {
       setIsGenerating(false);
       // Example: Redirect to a new editor session (e.g., ID 123)
-      navigate(`/editor/123`); 
-    }, 2000); 
+      navigate(`/editor/123`);
+    }, 2000);
   };
 
   const renderMainContent = () => {
@@ -40,18 +40,26 @@ const Dashboard = () => {
       // --- History View ---
       return (
         <Card className="flex flex-col flex-1 p-4 sm:p-8 bg-gray-800 border-gray-700/50">
-          <h2 className="text-xl sm:text-2xl font-bold text-blue-400 mb-4">Chat / Diagram Preview (ID: {activeHistoryId})</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-blue-400 mb-4">
+            Chat / Diagram Preview (ID: {activeHistoryId})
+          </h2>
           <div className="flex-1 text-gray-400 overflow-y-auto">
-             <p>This area will show the previous conversation or the generated diagram's image/code.</p>
-             <Button onClick={() => navigate(`/editor/${activeHistoryId}`)} className="mt-4">
-                 <ArrowRight size={20} className="mr-2" />
-                 Open in Editor
-             </Button>
+            <p>
+              This area will show the previous conversation or the generated
+              diagram's image/code.
+            </p>
+            <Button
+              onClick={() => navigate(`/editor/${activeHistoryId}`)}
+              className="mt-4"
+            >
+              <ArrowRight size={20} className="mr-2" />
+              Open in Editor
+            </Button>
           </div>
         </Card>
       );
-    } 
-    
+    }
+
     // --- Default View (New Chat/New Generation Input) ---
     return (
       <Card className="flex flex-col flex-1 p-4 sm:p-6 space-y-4 sm:space-y-5 bg-gray-800 border-gray-700">
@@ -59,11 +67,17 @@ const Dashboard = () => {
           <MessageSquare size={24} className="mr-3 text-blue-400" />
           Start New Generation
         </h2>
-        <p className="text-sm text-gray-400">Describe your system requirements and select the desired UML diagram type.</p>
+        <p className="text-sm text-gray-400">
+          Describe your system requirements and select the desired UML diagram
+          type.
+        </p>
 
         {/* 1. Diagram Type Dropdown */}
         <div>
-          <label htmlFor="diagram-type" className="block text-sm font-medium text-gray-300 mb-2">
+          <label
+            htmlFor="diagram-type"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
             Select Diagram Type
           </label>
           <div className="relative">
@@ -73,17 +87,29 @@ const Dashboard = () => {
               onChange={(e) => setSelectedType(e.target.value)}
               className="w-full py-2 sm:py-3 px-4 rounded-lg border border-white/30 bg-white/10 text-white text-sm sm:text-base focus:ring-blue-400 appearance-none cursor-pointer"
             >
-              {DIAGRAM_TYPES.map(type => (
-                <option key={type} value={type} className="bg-gray-800 text-white">{type}</option>
+              {DIAGRAM_TYPES.map((type) => (
+                <option
+                  key={type}
+                  value={type}
+                  className="bg-gray-800 text-white"
+                >
+                  {type}
+                </option>
               ))}
             </select>
-            <ChevronDown size={18} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 pointer-events-none" />
+            <ChevronDown
+              size={18}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 pointer-events-none"
+            />
           </div>
         </div>
 
         {/* 2. User Requirements Input */}
         <div className="flex-1 flex flex-col">
-          <label htmlFor="requirements" className="block text-sm font-medium text-gray-300 mb-2">
+          <label
+            htmlFor="requirements"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
             User Requirements (Text Prompt)
           </label>
           {/* Responsive Textarea: Height adjusts on small screens */}
@@ -97,9 +123,9 @@ const Dashboard = () => {
         </div>
 
         {/* 3. Generate Button */}
-        <Button 
-          fullWidth 
-          onClick={handleGenerate} 
+        <Button
+          fullWidth
+          onClick={handleGenerate}
           disabled={isGenerating}
           className="flex items-center justify-center text-sm sm:text-base"
         >
@@ -118,16 +144,16 @@ const Dashboard = () => {
       </Card>
     );
   };
-  
+
   return (
     // Layout component ke andar sirf Main Content area
     <div className="flex-1 flex flex-col h-full">
       {/* Header/Title: Responsive font size */}
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-white">Dashboard</h1>
-      
-      <div className="flex-1 flex flex-col">
-        {renderMainContent()}
-      </div>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-white">
+        Dashboard
+      </h1>
+
+      <div className="flex-1 flex flex-col">{renderMainContent()}</div>
     </div>
   );
 };

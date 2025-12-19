@@ -4,8 +4,12 @@ import { User, ArrowRight } from "lucide-react"; // UI Icons
 import { useNavigate } from "react-router-dom";
 
 // 👇 Firebase Imports (Logic merged)
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "../../firebase"; 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { auth } from "../../firebase";
 
 // 👇 Component Imports (UI merged)
 import Input from "../../components/Input";
@@ -13,9 +17,9 @@ import Button from "../../components/Button";
 import Card from "../../components/Card";
 
 import {
-  cardVariants, 
-  buttonHover, 
-  buttonTap,    
+  cardVariants,
+  buttonHover,
+  buttonTap,
   umlNodeAnimation,
   nodes,
   connections,
@@ -32,7 +36,7 @@ const AuthPage = () => {
   // 👇 Yahan Real Firebase Logic laga diya hai
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!email || !password) {
       alert("Please fill in all fields");
@@ -42,12 +46,16 @@ const AuthPage = () => {
     try {
       if (isSignup) {
         // 🆕 SIGNUP + NAME SAVE
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
         const user = userCredential.user;
 
         // Username save kar rahe hain
         await updateProfile(user, {
-          displayName: username, 
+          displayName: username,
         });
 
         alert("Account Created with Name! 🎉");
@@ -115,7 +123,7 @@ const AuthPage = () => {
       ))}
 
       {/* 👇 FINAL UI (Components + Logic Combined) */}
-      <Card 
+      <Card
         className="w-full max-w-sm sm:max-w-md md:max-w-lg p-6 sm:p-8 md:p-12 relative z-10 mx-4"
         variants={cardVariants}
         initial="hidden"
@@ -125,7 +133,6 @@ const AuthPage = () => {
           scale: 1.02,
         }}
       >
-        
         <div className="flex flex-col items-center mb-6 sm:mb-8">
           <div className="mb-4 w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] flex items-center justify-center">
             <img
@@ -145,7 +152,6 @@ const AuthPage = () => {
         </div>
 
         <form className="flex flex-col gap-4 sm:gap-6" onSubmit={handleSubmit}>
-          
           {isSignup && (
             <div className="flex flex-col">
               <label className="text-white font-semibold mb-1 sm:mb-2 text-sm sm:text-base">
@@ -183,8 +189,8 @@ const AuthPage = () => {
             />
           </div>
 
-          <Button 
-            fullWidth={true} 
+          <Button
+            fullWidth={true}
             className="mt-4 sm:mt-6 text-base sm:text-lg cursor-pointer"
             whileHover={buttonHover}
             whileTap={buttonTap}
@@ -192,7 +198,6 @@ const AuthPage = () => {
             {isSignup ? "Register" : "Log in"}
             <ArrowRight size={20} className="ml-2 inline-block" />
           </Button>
-
         </form>
 
         <p className="text-white text-center mt-4 sm:mt-6 text-xs sm:text-sm">
@@ -205,7 +210,6 @@ const AuthPage = () => {
             {isSignup ? "Sign in" : "Signup"}
           </button>
         </p>
-
       </Card>
     </div>
   );
