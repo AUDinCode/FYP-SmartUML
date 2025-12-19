@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, ChevronDown, Code, MessageSquare, ArrowRight } from 'lucide-react';
 
