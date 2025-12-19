@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, ArrowRight } from "lucide-react";
+import { User, ArrowRight } from "lucide-react"; // UI Icons
 import { useNavigate } from "react-router-dom";
 
-// Components
+// 👇 Firebase Imports (Logic merged)
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "../../firebase"; 
+
+// 👇 Component Imports (UI merged)
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import Card from "../../components/Card";
 
 import {
-  cardVariants, // ✅ Ab ye use hoga!
-  buttonHover,  // ✅ Ye bhi use hoga!
-  buttonTap,    // ✅ Ye bhi!
+  cardVariants, 
+  buttonHover, 
+  buttonTap,    
   umlNodeAnimation,
   nodes,
   connections,
@@ -25,13 +29,37 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
 
-  const handleSubmit = (e) => {
+  // 👇 Yahan Real Firebase Logic laga diya hai
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSignup) {
-      console.log("Signup:", { username, email, password });
-    } else {
-      console.log("Login:", { email, password });
-      navigate("/dashboard");
+    
+    // Validation
+    if (!email || !password) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    try {
+      if (isSignup) {
+        // 🆕 SIGNUP + NAME SAVE
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Username save kar rahe hain
+        await updateProfile(user, {
+          displayName: username, 
+        });
+
+        alert("Account Created with Name! 🎉");
+        navigate("/dashboard");
+      } else {
+        // 🔐 LOGIN
+        await signInWithEmailAndPassword(auth, email, password);
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.message); // Error dikhayega agar password galat hua ya email exist karta hua
     }
   };
 
@@ -86,10 +114,9 @@ const AuthPage = () => {
         </motion.div>
       ))}
 
-      {/* 👇 YAHAN DEKHO! Animations Wapis Aa Gayi Hain 👇 */}
+      {/* 👇 FINAL UI (Components + Logic Combined) */}
       <Card 
         className="w-full max-w-sm sm:max-w-md md:max-w-lg p-6 sm:p-8 md:p-12 relative z-10 mx-4"
-        // ✅ Purani Animations Wapis:
         variants={cardVariants}
         initial="hidden"
         animate="visible"
@@ -156,7 +183,6 @@ const AuthPage = () => {
             />
           </div>
 
-          {/* 👇 Button Animations bhi wapis lag gayin */}
           <Button 
             fullWidth={true} 
             className="mt-4 sm:mt-6 text-base sm:text-lg cursor-pointer"
