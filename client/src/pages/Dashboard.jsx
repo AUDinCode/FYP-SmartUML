@@ -3,41 +3,67 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Send, ChevronDown, MessageSquare, ArrowRight } from "lucide-react";
 
+// 👇 Firebase Imports (Naya Code - Saving ke liye)
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+
 // Import Custom Components
 import Button from "../components/Button";
 import Card from "../components/Card";
-// Input component ab hum use nahi kar rahe kyunke humne textarea use ki hai
 
-// --- UPDATED LIST: Sequence Diagram removed ---
 const DIAGRAM_TYPES = [
   "Use Case Diagram",
   "Class Diagram",
-  // 'Sequence Diagram' removed as requested
   "Activity Diagram",
 ];
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth(); // 👇 User lene ke liye
+
   const [requirements, setRequirements] = useState("");
   const [selectedType, setSelectedType] = useState(DIAGRAM_TYPES[0]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeHistoryId, setActiveHistoryId] = useState(null); // To handle history state
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
 
-  const handleGenerate = () => {
-    if (requirements.trim() === "") return;
+  // 👇 REAL DATABASE FUNCTION
+  const handleGenerate = async () => {
+    if (requirements.trim() === "") {
+      alert("Please describe your requirements first.");
+      return;
+    }
+    
     setIsGenerating(true);
 
-    // API call and Redirect simulation
-    setTimeout(() => {
+    try {
+      // 1. Save to Firestore (Database)
+      const docRef = await addDoc(collection(db, "chats"), {
+        userId: currentUser.uid,
+        title: selectedType + ": " + requirements.substring(0, 20) + "...", // Chat Title
+        prompt: requirements,
+        diagramType: selectedType,
+        diagramCode: "graph TD; A-->B;", // Dummy code for now
+        createdAt: serverTimestamp(),
+      });
+
+      // 2. Success Feedback
       setIsGenerating(false);
-      // Example: Redirect to a new editor session (e.g., ID 123)
-      navigate(`/editor/123`);
-    }, 2000);
+      setRequirements(""); // Clear input
+      
+      // Filhal alert, baad mein hum Editor page par bhejenge
+      alert("Success! Chat saved to Database. Check Sidebar!");
+      // navigate(`/editor/${docRef.id}`); // Future step
+
+    } catch (error) {
+      console.error("Error saving:", error);
+      alert("Error: " + error.message);
+      setIsGenerating(false);
+    }
   };
 
   const renderMainContent = () => {
     if (activeHistoryId) {
-      // --- History View ---
       return (
         <Card className="flex flex-col flex-1 p-4 sm:p-8 bg-gray-800 border-gray-700/50">
           <h2 className="text-xl sm:text-2xl font-bold text-blue-400 mb-4">
@@ -60,7 +86,6 @@ const Dashboard = () => {
       );
     }
 
-    // --- Default View (New Chat/New Generation Input) ---
     return (
       <Card className="flex flex-col flex-1 p-4 sm:p-6 space-y-4 sm:space-y-5 bg-gray-800 border-gray-700">
         <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center">
@@ -112,7 +137,6 @@ const Dashboard = () => {
           >
             User Requirements (Text Prompt)
           </label>
-          {/* Responsive Textarea: Height adjusts on small screens */}
           <textarea
             id="requirements"
             placeholder="E.g., A user should be able to log in, and an admin can approve diagrams..."
@@ -127,12 +151,12 @@ const Dashboard = () => {
           fullWidth
           onClick={handleGenerate}
           disabled={isGenerating}
-          className="flex items-center justify-center text-sm sm:text-base"
+          className="flex items-center justify-center text-sm sm:text-base cursor-pointer"
         >
           {isGenerating ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-3"></div>
-              Generating...
+              Saving...
             </>
           ) : (
             <>
@@ -146,13 +170,10 @@ const Dashboard = () => {
   };
 
   return (
-    // Layout component ke andar sirf Main Content area
     <div className="flex-1 flex flex-col h-full">
-      {/* Header/Title: Responsive font size */}
       <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-white">
         Dashboard
       </h1>
-
       <div className="flex-1 flex flex-col">{renderMainContent()}</div>
     </div>
   );

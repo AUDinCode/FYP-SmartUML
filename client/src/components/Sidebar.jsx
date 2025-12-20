@@ -1,64 +1,94 @@
-import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Globe, MessageSquare, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { LogOut, MessageSquare, X, Loader } from "lucide-react";
 
-// Import Custom Components
+// 👇 Firebase & Firestore Imports
+import { signOut } from "firebase/auth";
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot 
+} from "firebase/firestore";
+import { auth, db } from "../firebase"; 
+import { useAuth } from "../context/AuthContext";
+
 import Card from "./Card";
 import Button from "./Button";
 
-// Dummy History Items (Taake list nazar aaye)
-const dummyHistoryItems = [
-  { id: 1, title: "Class Diagram: User Authentication System" },
-  { id: 2, title: "Use Case: Payment Gateway Integration" },
-  { id: 3, title: "Activity Diagram: New Registration Flow" },
-];
-
 const Sidebar = ({
-  historyItems = dummyHistoryItems,
   onSelect,
   onNewChat,
   isSidebarOpen,
   toggleSidebar,
 }) => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  
+  // State for Real History
+  const [historyItems, setHistoryItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // --- LOGOUT FUNCTION (Frontend Simulation Removed) ---
-  const handleLogout = () => {
-    // Yahan pehle Backend API call hoti hai (Jab API ready ho)
+  const displayName = currentUser?.displayName || "SmartUML";
 
-    // 1. Frontend Token Removal (Real logic)
-    localStorage.removeItem("token"); // JWT/Session token ko hatao
-    localStorage.removeItem("user"); // User details ko hatao (agar save kiye hon)
+  // 👇 REAL TIME LISTENER
+  useEffect(() => {
+    if (!currentUser) {
+        setLoading(false);
+        return;
+    }
 
-    // 2. Redirect to Auth Page
-    navigate("/");
+    const q = query(
+      collection(db, "chats"),
+      where("userId", "==", currentUser.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const chats = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setHistoryItems(chats);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching chats:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/");
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
   };
-  // --------------------------------------------------------
 
-  // New Chat Click (Blue color theme ke liye)
   const handleNewChatClick = () => {
     navigate("/dashboard");
-    if (onNewChat) {
-      onNewChat();
-    }
-    toggleSidebar();
+    if (onNewChat) onNewChat();
+    // Mobile pe click hone ke baad sidebar band karein
+    if (window.innerWidth < 768) toggleSidebar(); 
   };
 
   return (
     <>
-      {/* 1. Sidebar Content (Responsive) */}
       <div
         className={`
-                    flex flex-col w-64 md:w-80 bg-gray-900 text-white shadow-2xl h-full border-r border-gray-700/50 
-                    fixed md:relative top-0 left-0 z-40 transition-transform duration-300
-                    ${
-                      isSidebarOpen
-                        ? "translate-x-0"
-                        : "-translate-x-full md:translate-x-0"
-                    }
-                `}
+            flex flex-col w-64 md:w-80 bg-gray-900 text-white shadow-2xl h-full border-r border-gray-700/50 
+            fixed md:relative top-0 left-0 z-40 transition-transform duration-300
+            ${
+              isSidebarOpen
+                ? "translate-x-0"
+                : "-translate-x-full md:translate-x-0"
+            }
+        `}
       >
-        {/* Close Button (Mobile) */}
         <button
           onClick={toggleSidebar}
           className="md:hidden absolute top-4 right-4 text-white hover:text-blue-400 z-50"
@@ -66,21 +96,18 @@ const Sidebar = ({
           <X size={24} />
         </button>
 
-        {/* Logo/Branding Section */}
         <div className="p-4 mt-3 sm:p-6 flex items-center border-b border-gray-700/50">
           <img
             src="/assets/images/logo.png"
             alt="SmartUML Logo"
             className="w-8 h-8 rounded-full mr-2 drop-shadow-[0_0_5px_rgba(37,99,235,0.5)]"
           />
-          <h1 className="text-xl font-extrabold text-white tracking-wider">
-            SmartUML
+          <h1 className="text-xl font-extrabold text-white tracking-wider capitalize truncate">
+            {displayName}
           </h1>
         </div>
 
-        {/* --- MAIN INTERACTION AREA --- */}
         <div className="flex-1 flex flex-col p-4 gap-3">
-          {/* 1. New Chat Button (DEFAULT BLUE/INDIGO GRADIENT) */}
           <Button
             onClick={handleNewChatClick}
             fullWidth
@@ -90,33 +117,43 @@ const Sidebar = ({
             New Chat
           </Button>
 
-          {/* 2. Chat History Section */}
           <h4 className="text-gray-400 text-sm font-semibold mt-2 uppercase">
             Chat History
           </h4>
 
-          {/* History Items List */}
+          {/* 👇 REAL HISTORY LIST */}
           <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-            {historyItems.map((item) => (
-              <Card
-                key={item.id}
-                className="p-3 text-sm cursor-pointer hover:bg-gray-700 bg-gray-800 text-white truncate !backdrop-blur-none"
-                onClick={() => {
-                  onSelect(item.id);
-                  toggleSidebar();
-                }}
-              >
-                {item.title}
-              </Card>
-            ))}
+            {loading ? (
+              <div className="flex justify-center mt-4 text-gray-500">
+                <Loader className="animate-spin" size={20} />
+              </div>
+            ) : historyItems.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center mt-4 italic">
+                No history yet. Start a new chat!
+              </p>
+            ) : (
+              historyItems.map((item) => (
+                <Card
+                  key={item.id}
+                  className="p-3 text-sm cursor-pointer hover:bg-gray-700 bg-gray-800 text-white truncate !backdrop-blur-none"
+                  // 👇 FIX: Ab ye sahi route par navigate karega
+                  onClick={() => {
+                    navigate(`/history/${item.id}`); // Route change karein
+                    if (onSelect) onSelect(item.id); // Parent ko bhi batayein (agar zaroorat ho)
+                    if (window.innerWidth < 768) toggleSidebar(); // Mobile pe sidebar close karein
+                  }}
+                >
+                  {item.title || "Untitled Diagram"}
+                </Card>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Footer/Logout Section (RED THEME) */}
         <div className="p-4 border-t border-gray-700/50">
           <button
-            onClick={handleLogout} // Frontend Logout Logic
-            className="flex items-center w-full p-3 rounded-lg text-red-400 hover:bg-gray-700 transition-all font-medium"
+            onClick={handleLogout}
+            className="flex items-center w-full p-3 rounded-lg text-red-400 hover:bg-gray-700 transition-all font-medium cursor-pointer"
           >
             <LogOut size={20} className="mr-3" />
             <span>Logout</span>
@@ -124,7 +161,6 @@ const Sidebar = ({
         </div>
       </div>
 
-      {/* 2. Mobile Overlay */}
       {isSidebarOpen && (
         <div
           onClick={toggleSidebar}

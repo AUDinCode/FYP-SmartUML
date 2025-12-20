@@ -1,23 +1,27 @@
-// client/src/firebase.js
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";       // 👈 Login ke liye add kiya
-import { getFirestore } from "firebase/firestore"; // 👈 Database ke liye add kiya
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore"; // 👈 Ye Import Zaroori hai
 
-// Aapki Asli Keys (Jo aapne bheji hain)
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDbshgcRJiU1D5Cfgiy_kOyy6FQBxxbhpI",
+   apiKey: "AIzaSyDbshgcRJiU1D5Cfgiy_kOyy6FQBxxbhpI",
+
   authDomain: "smartuml-e4aa5.firebaseapp.com",
+
   projectId: "smartuml-e4aa5",
+
   storageBucket: "smartuml-e4aa5.firebasestorage.app",
+
   messagingSenderId: "952935867500",
+
   appId: "1:952935867500:web:9680300b4c1b22d7dd6449"
 };
 
-// 1. Firebase App Initialize karna
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// 2. Auth aur Database ko export karna taake puri app mein use ho sakein
+// Export Services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
-
+export const db = getFirestore(app); // 👈 Ye Export karna lazmi hai
 export default app;

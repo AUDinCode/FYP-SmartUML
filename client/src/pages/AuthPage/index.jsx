@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, ArrowRight } from "lucide-react"; // UI Icons
+import { User, ArrowRight } from "lucide-react"; 
 import { useNavigate } from "react-router-dom";
 
-// 👇 Firebase Imports (Logic merged)
+// Firebase Imports
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -11,7 +11,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../../firebase";
 
-// 👇 Component Imports (UI merged)
+// Component Imports
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import Card from "../../components/Card";
@@ -33,19 +33,24 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
 
-  // 👇 Yahan Real Firebase Logic laga diya hai
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
+    // 👇 1. BASIC VALIDATION
     if (!email || !password) {
-      alert("Please fill in all fields");
+      alert("Please enter both Email and Password.");
+      return;
+    }
+
+    // 👇 2. STRICT USERNAME CHECK (Sirf Signup ke liye)
+    if (isSignup && !username.trim()) {
+      alert("Username is mandatory! Please enter your name.");
       return;
     }
 
     try {
       if (isSignup) {
-        // 🆕 SIGNUP + NAME SAVE
+        // 🆕 SIGNUP FLOW
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           email,
@@ -53,21 +58,26 @@ const AuthPage = () => {
         );
         const user = userCredential.user;
 
-        // Username save kar rahe hain
+        // Username save karna lazmi hai
         await updateProfile(user, {
           displayName: username,
         });
 
-        alert("Account Created with Name! 🎉");
-        navigate("/dashboard");
+        alert(`Welcome, ${username}! Account created.`);
+        
+        // 👇 CHANGED HERE: Force Reload taake Username Dashboard par foran dikhe
+        window.location.href = "/dashboard"; 
+
       } else {
-        // 🔐 LOGIN
+        // 🔐 LOGIN FLOW
         await signInWithEmailAndPassword(auth, email, password);
+        // Login mein navigate theek hai
         navigate("/dashboard");
       }
     } catch (error) {
       console.error(error);
-      alert(error.message); // Error dikhayega agar password galat hua ya email exist karta hua
+      const errorMessage = error.message.replace("Firebase: ", "");
+      alert(errorMessage); 
     }
   };
 
@@ -78,7 +88,7 @@ const AuthPage = () => {
     >
       <div className="absolute inset-0 bg-black/40"></div>
 
-      {/* UML Connections Animation */}
+      {/* Animation Background */}
       <svg className="absolute w-full h-full pointer-events-none hidden xl:block">
         {connections.map((conn, i) => {
           const fromNode = nodes.find((n) => n.id === conn.from);
@@ -106,7 +116,6 @@ const AuthPage = () => {
         })}
       </svg>
 
-      {/* UML Nodes Animation */}
       {nodes.map((node) => (
         <motion.div
           key={node.id}
@@ -122,7 +131,7 @@ const AuthPage = () => {
         </motion.div>
       ))}
 
-      {/* 👇 FINAL UI (Components + Logic Combined) */}
+      {/* Auth Card */}
       <Card
         className="w-full max-w-sm sm:max-w-md md:max-w-lg p-6 sm:p-8 md:p-12 relative z-10 mx-4"
         variants={cardVariants}
@@ -155,37 +164,40 @@ const AuthPage = () => {
           {isSignup && (
             <div className="flex flex-col">
               <label className="text-white font-semibold mb-1 sm:mb-2 text-sm sm:text-base">
-                Username
+                Username <span className="text-red-500">*</span>
               </label>
               <Input
-                placeholder="Your username"
+                placeholder="Enter your full name"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                required 
               />
             </div>
           )}
 
           <div className="flex flex-col">
             <label className="text-white font-semibold mb-1 sm:mb-2 text-sm sm:text-base">
-              Email
+              Email <span className="text-red-500">*</span>
             </label>
             <Input
               type="email"
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
 
           <div className="flex flex-col">
             <label className="text-white font-semibold mb-1 sm:mb-2 text-sm sm:text-base">
-              Password
+              Password <span className="text-red-500">*</span>
             </label>
             <Input
               type="password"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
 
@@ -204,7 +216,10 @@ const AuthPage = () => {
           {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
           <button
             type="button"
-            onClick={() => setIsSignup(!isSignup)}
+            onClick={() => {
+              setIsSignup(!isSignup);
+              setUsername(""); 
+            }}
             className="font-semibold hover:underline cursor-pointer"
           >
             {isSignup ? "Sign in" : "Signup"}
