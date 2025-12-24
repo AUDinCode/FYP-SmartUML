@@ -7,7 +7,7 @@ import { Loader, ArrowLeft } from "lucide-react";
 const HistoryView = () => {
   const { id } = useParams(); // URL se ID nikalne ke liye (e.g., 123)
   const navigate = useNavigate();
-  
+
   const [chatData, setChatData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,7 +17,7 @@ const HistoryView = () => {
     const fetchChat = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         if (!id) return;
 
@@ -44,7 +44,7 @@ const HistoryView = () => {
   // 👇 Loading State
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+      <div className="flex items-center justify-center h-full bg-gray-900 text-white">
         <Loader className="animate-spin mr-2" /> Loading chat...
       </div>
     );
@@ -53,10 +53,10 @@ const HistoryView = () => {
   // 👇 Error State
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-red-400">
+      <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-red-400">
         <p className="text-xl mb-4">{error}</p>
-        <button 
-          onClick={() => navigate('/dashboard')}
+        <button
+          onClick={() => navigate("/dashboard")}
           className="bg-gray-800 px-4 py-2 rounded text-white hover:bg-gray-700 border border-gray-600"
         >
           Go Back to Dashboard
@@ -68,30 +68,35 @@ const HistoryView = () => {
   // 👇 Main Content (Jab Data Aa Jaye)
   return (
     <div className="h-full flex flex-col bg-gray-900 text-white p-6 overflow-y-auto">
-      
       {/* Header Area */}
       <div className="flex items-center mb-6 border-b border-gray-700 pb-4">
-        <button 
-          onClick={() => navigate('/dashboard')} 
-          className="mr-4 p-2 bg-gray-800 rounded-full hover:bg-gray-700 transition"
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="mr-4 p-2 mb-4 bg-gray-800 rounded-full hover:bg-gray-700 transition md:hidden"
           title="Back to Dashboard"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold">{chatData?.title || "Untitled Chat"}</h1>
+          <h1 className="text-2xl font-bold">
+            {chatData?.title || "Untitled Chat"}
+          </h1>
           <p className="text-xs text-gray-400 mt-1">
-            Created at: {chatData?.createdAt?.toDate ? chatData.createdAt.toDate().toLocaleString() : "Date unknown"}
+            Created at:{" "}
+            {chatData?.createdAt?.toDate
+              ? chatData.createdAt.toDate().toLocaleString()
+              : "Date unknown"}
           </p>
         </div>
       </div>
 
       {/* Main Content Body */}
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-        
         {/* User Prompt Section */}
         <div className="mb-8">
-          <h3 className="text-blue-400 font-semibold mb-2 uppercase text-xs tracking-wider">Your Prompt:</h3>
+          <h3 className="text-blue-400 font-semibold mb-2 uppercase text-xs tracking-wider">
+            Your Prompt:
+          </h3>
           <div className="bg-gray-900/50 p-4 rounded border-l-4 border-blue-500 text-gray-200">
             {chatData?.prompt || "No prompt available"}
           </div>
@@ -99,12 +104,15 @@ const HistoryView = () => {
 
         {/* AI Response / Diagram Code Section */}
         <div>
-          <h3 className="text-green-400 font-semibold mb-2 uppercase text-xs tracking-wider">Diagram Code:</h3>
+          <h3 className="text-green-400 font-semibold mb-2 uppercase text-xs tracking-wider">
+            Diagram Code:
+          </h3>
           <pre className="bg-black p-4 rounded border border-gray-700 overflow-x-auto font-mono text-sm text-green-300 shadow-inner">
-            {chatData?.response || chatData?.diagramCode || "No code generated."}
+            {chatData?.response ||
+              chatData?.diagramCode ||
+              "No code generated."}
           </pre>
         </div>
-
       </div>
     </div>
   );

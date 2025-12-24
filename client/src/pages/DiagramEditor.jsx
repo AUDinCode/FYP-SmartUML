@@ -5,10 +5,10 @@ import {
   Save,
   Download,
   ArrowLeft,
-  Settings,
   FileText,
   FileImage,
   Layers,
+  Loader, // ✅ Visual update: Loader icon
 } from "lucide-react";
 
 // Import Custom Components
@@ -24,7 +24,7 @@ const DiagramEditor = () => {
 
   // State to hold the XML data to be loaded into Draw.io
   const [initialDiagramXML, setInitialDiagramXML] = useState(
-    // Default XML structure. This will be replaced by the generated diagram XML from the backend.
+    // Default XML structure.
     "<?xml version='1.0'?><mxfile><diagram id='my-diagram' name='UML Diagram'></diagram></mxfile>"
   );
   const [isDrawIOIframeLoaded, setIsDrawIOIframeLoaded] = useState(false);
@@ -39,17 +39,21 @@ const DiagramEditor = () => {
     }
 
     // --- CONCEPT: DRAW.IO MESSAGE RECEIVING LOGIC YAHAN AYEGA ---
-    // TODO: window.addEventListener('message', handleDrawIoMessage);
+    // Listen for messages from Draw.io (e.g., when export is ready)
+    // window.addEventListener('message', handleDrawIoMessage);
 
     return () => {
-      // TODO: window.removeEventListener('message', handleDrawIoMessage);
+      // Cleanup listener
+      // window.removeEventListener('message', handleDrawIoMessage);
     };
   }, [id]);
 
-  // --- CONCEPT: COMMAND SENDER FUNCTION ---
+  // --- CONCEPT: COMMAND SENDER FUNCTION (Important for Future) ---
+  // Ye function Draw.io ko instructions bhejta hai (Save, Export, etc.)
   const sendDrawIoCommand = (message) => {
     if (drawIoIframeRef.current && drawIoIframeRef.current.contentWindow) {
       console.log("Sending command to Draw.io:", message);
+      // Actual command:
       // drawIoIframeRef.current.contentWindow.postMessage(JSON.stringify(message), 'https://www.draw.io');
     }
   };
@@ -59,16 +63,17 @@ const DiagramEditor = () => {
 
   const handleSave = () => {
     console.log("[Concept]: Requesting edited XML from Draw.io for saving...");
-    // TODO: sendDrawIoCommand({ action: 'export', format: 'xml', ... });
-    // TODO: Draw.io se XML milne ke baad backend API call hogi
+    // Step 1: Ask Draw.io for current XML
+    // sendDrawIoCommand({ action: 'export', format: 'xml', spin: 'Updating...' });
+
+    // Step 2: Receive XML in useEffect (listener) and save to Firebase
   };
 
   const handleExport = (format) => {
     console.log(
       `[Concept]: Requesting Export in ${format} format from Draw.io...`
     );
-    // TODO: sendDrawIoCommand({ action: 'export', format: format.toLowerCase(), ... });
-    // TODO: Draw.io se data milne ke baad browser download trigger kiya jayega
+    // sendDrawIoCommand({ action: 'export', format: format.toLowerCase() });
   };
 
   const exportFormats = [
@@ -123,12 +128,12 @@ const DiagramEditor = () => {
 
       {/* 2. Main Content Area (Full Screen Draw.io Editor) */}
       <div className="flex flex-1 overflow-hidden p-4">
-        {/* Draw.io Iframe area (w-full) */}
+        {/* Draw.io Iframe area */}
         <div className="flex-1 border border-gray-600 rounded-lg overflow-hidden relative">
           <iframe
-            ref={drawIoIframeRef} // Ref added here
-            // Initial XML data Draw.io ko pass kar rahe hain
-            src={`https://www.draw.io/?embed=1&ui=min&libraries=1&save=0&xml=${encodeURIComponent(
+            ref={drawIoIframeRef}
+            // 👇 Dark Mode enabled here (&dark=1)
+            src={`https://www.draw.io/?embed=1&ui=min&libraries=1&dark=1&save=0&xml=${encodeURIComponent(
               initialDiagramXML
             )}`}
             onLoad={() => setIsDrawIOIframeLoaded(true)}
@@ -136,10 +141,13 @@ const DiagramEditor = () => {
             title="Draw.io Editor"
           />
 
+          {/* 👇 Better Loading Screen */}
           {!isDrawIOIframeLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80">
-              <Settings size={24} className="animate-spin mr-3 text-blue-400" />
-              Loading Diagram Editor...
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 text-white">
+              <Loader size={30} className="animate-spin mr-3 text-blue-400" />
+              <span className="text-lg font-medium">
+                Loading Diagram Editor...
+              </span>
             </div>
           )}
         </div>
