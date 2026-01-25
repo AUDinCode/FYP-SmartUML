@@ -27,8 +27,7 @@ const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [inputError, setInputError] = useState("");
 
-  // 👇 FINAL STRICT VALIDATION LOGIC
-  // hahahaha just for fun
+  // VALIDATION LOGIC
   const validateInput = (text, type) => {
     const trimmedText = text.trim();
     if (!trimmedText) return ""; 
@@ -36,41 +35,36 @@ const Dashboard = () => {
     const lowerText = trimmedText.toLowerCase();
     const words = lowerText.split(/\s+/); // Words count
 
-    // --- STEP 1: LONG WORD CHECK (Keyboard Smash Detection) ---
-    // Agar koi aik lafz bhi 25 characters se lamba hai (Screenshot 3 wala case)
-    // to ye confirm garbage hai.
+    // LONG WORD CHECK 
     const hasSuperLongWord = words.some(w => w.length > 25);
     if (hasSuperLongWord) {
         return "Please enter valid words. Some words look like random keyboard smashing.";
     }
 
-    // --- STEP 2: MINIMUM WORDS ---
+    // MINIMUM WORDS
     if (words.length < 3) {
         return "Please enter a valid sentence (at least 3 words).";
     }
 
-    // --- STEP 3: "REAL ENGLISH" CHECK (Common Word Detection) ---
-    // Chahe 3 words hon ya 30, agar in mein se koi lafz nahi hai to ye garbage hai.
-    // Humne list thori bari ki hai taake "Design Login Page" jese sahi input fail na hon.
+    // REAL ENGLISH CHECK
     const commonWords = [
-        'the', 'is', 'a', 'an', 'and', 'to', 'of', 'in', 'for', 'with', 'on', 'at', 'my', // Basic
-        'create', 'make', 'system', 'user', 'login', 'admin', 'page', 'app', 'design', 'process', // Context
-        'class', 'data', 'store', 'show', 'display', 'check', 'verify', 'start', 'end', 'if', 'then' // Actions
+        'the', 'is', 'a', 'an', 'and', 'to', 'of', 'in', 'for', 'with', 'on', 'at', 'my', 
+        'create', 'make', 'system', 'user', 'login', 'admin', 'page', 'app', 'design', 'process', 
+        'class', 'data', 'store', 'show', 'display', 'check', 'verify', 'start', 'end', 'if', 'then'
     ];
     
-    // Check: Kya input mein in mein se AIK BHI lafz hai?
     const hasCommonWord = words.some(word => commonWords.includes(word));
 
     if (!hasCommonWord) {
         return "This looks like random typing. Please use valid English sentences.";
     }
 
-    // --- STEP 4: TOTAL LENGTH CHECK ---
+    // TOTAL LENGTH CHECK
     if (trimmedText.length < 20) {
       return "Description is too short. Please add more details for a better diagram.";
     }
 
-    // --- STEP 5: CONTEXT CHECK (Specific Diagram Logic) ---
+    // CONTEXT CHECK 
     
     // 1. Class Diagram
     if (type === "Class Diagram" && 
@@ -103,10 +97,10 @@ const Dashboard = () => {
         return "Tip: For Activity Diagrams, use words like 'Start', 'End', 'Flow', 'Step', or 'Decision'.";
     }
 
-    return ""; // All Good
+    return "";
   };
 
-  // 👇 Real-time Checking
+  // Real-time Checking
   useEffect(() => {
     if (!requirements) {
         setInputError("");
@@ -116,7 +110,7 @@ const Dashboard = () => {
     setInputError(errorMsg);
   }, [requirements, selectedType]);
 
-
+  // handles when generate dig is clicked
   const handleGenerate = async () => {
     const errorMsg = validateInput(requirements, selectedType);
     if (errorMsg) {
@@ -124,9 +118,10 @@ const Dashboard = () => {
       return; 
     }
     
-    setIsGenerating(true);
+    setIsGenerating(true); //spinner
 
     try {
+      // sending data to FireBase
       const docRef = await addDoc(collection(db, "chats"), {
         userId: currentUser.uid,
         title: selectedType + ": " + requirements.substring(0, 20) + "...",
@@ -136,11 +131,12 @@ const Dashboard = () => {
         createdAt: serverTimestamp(),
       });
 
+      // success case empties req 
       setIsGenerating(false);
       setRequirements("");
       alert("Success! Chat saved to Database. Check Sidebar!");
 
-    } catch (error) {
+    } catch (error) {      // error in internet or firebase
       console.error("Error saving:", error);
       alert("Error: " + error.message);
       setIsGenerating(false);
