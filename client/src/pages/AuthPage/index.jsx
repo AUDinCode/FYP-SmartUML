@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, ArrowRight } from "lucide-react"; 
+import { User, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Firebase Imports
@@ -64,10 +64,9 @@ const AuthPage = () => {
         });
 
         alert(`Welcome, ${username}! Account created.`);
-        
-        // 👇 CHANGED HERE: Force Reload taake Username Dashboard par foran dikhe
-        window.location.href = "/dashboard"; 
 
+        // 👇 CHANGED HERE: Force Reload taake Username Dashboard par foran dikhe
+        window.location.href = "/dashboard";
       } else {
         // 🔐 LOGIN FLOW
         await signInWithEmailAndPassword(auth, email, password);
@@ -77,7 +76,7 @@ const AuthPage = () => {
     } catch (error) {
       console.error(error);
       const errorMessage = error.message.replace("Firebase: ", "");
-      alert(errorMessage); 
+      alert(errorMessage);
     }
   };
 
@@ -170,7 +169,7 @@ const AuthPage = () => {
                 placeholder="Enter your full name"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required 
+                required
               />
             </div>
           )}
@@ -218,7 +217,7 @@ const AuthPage = () => {
             type="button"
             onClick={() => {
               setIsSignup(!isSignup);
-              setUsername(""); 
+              setUsername("");
             }}
             className="font-semibold hover:underline cursor-pointer"
           >

@@ -1,6 +1,9 @@
 // src/pages/DiagramEditor.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase"; // ✅ FIX: Path corrected
+import plantumlEncoder from "plantuml-encoder";
 import {
   Save,
   Download,
@@ -8,10 +11,11 @@ import {
   FileText,
   FileImage,
   Layers,
-  Loader, // ✅ Visual update: Loader icon
+  Loader,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 
-// Import Custom Components
 import Button from "../components/Button";
 import Dropdown from "../components/Dropdown";
 
@@ -19,81 +23,82 @@ const DiagramEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Draw.io iframe reference (used for PostMessage API)
-  const drawIoIframeRef = useRef(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [zoom, setZoom] = useState(1);
 
-  // State to hold the XML data to be loaded into Draw.io
-  const [initialDiagramXML, setInitialDiagramXML] = useState(
-    // Default XML structure.
-    "<?xml version='1.0'?><mxfile><diagram id='my-diagram' name='UML Diagram'></diagram></mxfile>"
-  );
-  const [isDrawIOIframeLoaded, setIsDrawIOIframeLoaded] = useState(false);
-
+  // --- FETCH DATA ---
   useEffect(() => {
-    // --- CONCEPT: DATA FETCHING LOGIC YAHAN AYEGA ---
-    if (id !== "new") {
-      console.log(
-        `[Concept]: Fetching previously generated diagram XML for ID: ${id}`
-      );
-      // TODO: API call to fetch PlantUML generated XML and set setInitialDiagramXML()
-    }
+    const fetchDiagram = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const docRef = doc(db, "chats", id);
+        const docSnap = await getDoc(docRef);
 
-    // --- CONCEPT: DRAW.IO MESSAGE RECEIVING LOGIC YAHAN AYEGA ---
-    // Listen for messages from Draw.io (e.g., when export is ready)
-    // window.addEventListener('message', handleDrawIoMessage);
-
-    return () => {
-      // Cleanup listener
-      // window.removeEventListener('message', handleDrawIoMessage);
+        if (docSnap.exists()) {
+          const code = docSnap.data().diagramCode;
+          if (code) {
+            const encoded = plantumlEncoder.encode(code);
+            setImageUrl(`https://www.plantuml.com/plantuml/svg/${encoded}`);
+          } else {
+            setError("No Diagram Code found.");
+          }
+        }
+      } catch (err) {
+        console.error("Error:", err);
+        setError("Failed to load diagram.");
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchDiagram();
   }, [id]);
 
-  // --- CONCEPT: COMMAND SENDER FUNCTION (Important for Future) ---
-  // Ye function Draw.io ko instructions bhejta hai (Save, Export, etc.)
-  const sendDrawIoCommand = (message) => {
-    if (drawIoIframeRef.current && drawIoIframeRef.current.contentWindow) {
-      console.log("Sending command to Draw.io:", message);
-      // Actual command:
-      // drawIoIframeRef.current.contentWindow.postMessage(JSON.stringify(message), 'https://www.draw.io');
-    }
-  };
-
-  // --- ACTION HANDLERS ---
   const handleBack = () => navigate("/dashboard");
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
 
-  const handleSave = () => {
-    console.log("[Concept]: Requesting edited XML from Draw.io for saving...");
-    // Step 1: Ask Draw.io for current XML
-    // sendDrawIoCommand({ action: 'export', format: 'xml', spin: 'Updating...' });
+  // Placeholder Save Function (UI same rakhne ke liye)
+  const handleSave = () => alert("Diagram is auto-saved in Firebase!");
 
-    // Step 2: Receive XML in useEffect (listener) and save to Firebase
-  };
-
-  const handleExport = (format) => {
-    console.log(
-      `[Concept]: Requesting Export in ${format} format from Draw.io...`
-    );
-    // sendDrawIoCommand({ action: 'export', format: format.toLowerCase() });
+  // Export Logic
+  const handleExport = async (format) => {
+    if (!imageUrl) return;
+    try {
+      // Simple download logic
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `diagram-${id}.svg`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Download failed");
+    }
   };
 
   const exportFormats = [
+    { label: "Export as SVG", icon: Layers, action: () => handleExport("SVG") },
     {
       label: "Export as PNG",
       icon: FileImage,
       action: () => handleExport("PNG"),
     },
-    { label: "Export as SVG", icon: Layers, action: () => handleExport("SVG") },
     {
-      label: "Export as XML (.drawio)",
+      label: "Export as XML",
       icon: FileText,
       action: () => handleExport("XML"),
     },
   ];
 
   return (
-    // Full screen container
     <div className="flex flex-col h-screen bg-gray-900 text-white">
-      {/* 1. Header / Top Toolbar */}
+      {/* --- HEADER (DESIGN SAME HAI) --- */}
       <header className="p-3 bg-gray-800 border-b border-gray-700/50 flex justify-between items-center sticky top-0 z-10">
         <div className="flex items-center space-x-4">
           <Button
@@ -102,10 +107,7 @@ const DiagramEditor = () => {
           >
             <ArrowLeft size={18} /> Back to Dashboard
           </Button>
-          <h1 className="text-xl font-semibold">
-            Diagram Customization:{" "}
-            {id === "new" ? "New Project" : `Project ${id}`}
-          </h1>
+          <h1 className="text-xl font-semibold">Diagram Customization</h1>
         </div>
 
         <div className="flex space-x-3">
@@ -113,10 +115,9 @@ const DiagramEditor = () => {
             onClick={handleSave}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <Save size={18} /> Save Changes
+            <Save size={18} />{" "}
+            <span className="ml-2 hidden sm:inline">Save Changes</span>
           </Button>
-
-          {/* Export Dropdown */}
           <Dropdown
             label="Export"
             icon={<Download size={18} />}
@@ -126,31 +127,46 @@ const DiagramEditor = () => {
         </div>
       </header>
 
-      {/* 2. Main Content Area (Full Screen Draw.io Editor) */}
+      {/* --- MAIN AREA (NO IFRAME, NOW IMAGE) --- */}
       <div className="flex flex-1 overflow-hidden p-4">
-        {/* Draw.io Iframe area */}
-        <div className="flex-1 border border-gray-600 rounded-lg overflow-hidden relative">
-          <iframe
-            ref={drawIoIframeRef}
-            // 👇 Dark Mode enabled here (&dark=1)
-            src={`https://www.draw.io/?embed=1&ui=min&libraries=1&dark=1&save=0&xml=${encodeURIComponent(
-              initialDiagramXML
-            )}`}
-            onLoad={() => setIsDrawIOIframeLoaded(true)}
-            className="w-full h-full border-none"
-            title="Draw.io Editor"
-          />
-
-          {/* 👇 Better Loading Screen */}
-          {!isDrawIOIframeLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 text-white">
+        <div className="flex-1 border border-gray-600 rounded-lg overflow-auto bg-gray-800/50 relative flex justify-center items-start pt-10">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80">
               <Loader size={30} className="animate-spin mr-3 text-blue-400" />
-              <span className="text-lg font-medium">
-                Loading Diagram Editor...
-              </span>
+              <span>Loading Diagram...</span>
             </div>
           )}
+
+          {error && <div className="text-red-400 mt-20">{error}</div>}
+
+          {!loading && !error && imageUrl && (
+            <img
+              src={imageUrl}
+              alt="Diagram"
+              className="max-w-none shadow-lg bg-white p-4 rounded"
+              style={{
+                transform: `scale(${zoom})`,
+                transition: "transform 0.2s",
+              }}
+            />
+          )}
         </div>
+      </div>
+
+      {/* Zoom Buttons */}
+      <div className="fixed bottom-6 right-6 flex flex-col space-y-2">
+        <Button
+          onClick={handleZoomIn}
+          className="bg-gray-700 p-2 rounded-full shadow-lg"
+        >
+          <ZoomIn size={20} />
+        </Button>
+        <Button
+          onClick={handleZoomOut}
+          className="bg-gray-700 p-2 rounded-full shadow-lg"
+        >
+          <ZoomOut size={20} />
+        </Button>
       </div>
     </div>
   );

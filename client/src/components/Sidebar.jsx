@@ -1,31 +1,26 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, MessageSquare, X, Loader } from "lucide-react";
 
 // 👇 Firebase & Firestore Imports
 import { signOut } from "firebase/auth";
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot 
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
 } from "firebase/firestore";
-import { auth, db } from "../firebase"; 
+import { auth, db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
 import Card from "./Card";
 import Button from "./Button";
 
-const Sidebar = ({
-  onSelect,
-  onNewChat,
-  isSidebarOpen,
-  toggleSidebar,
-}) => {
+const Sidebar = ({ onSelect, onNewChat, isSidebarOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  
+
   // State for Real History
   const [historyItems, setHistoryItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +30,8 @@ const Sidebar = ({
   // 👇 REAL TIME LISTENER
   useEffect(() => {
     if (!currentUser) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
 
     const q = query(
@@ -45,17 +40,21 @@ const Sidebar = ({
       orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const chats = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setHistoryItems(chats);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching chats:", error);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const chats = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setHistoryItems(chats);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching chats:", error);
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, [currentUser]);
@@ -73,7 +72,7 @@ const Sidebar = ({
     navigate("/dashboard");
     if (onNewChat) onNewChat();
     // Mobile pe click hone ke baad sidebar band karein
-    if (window.innerWidth < 768) toggleSidebar(); 
+    if (window.innerWidth < 768) toggleSidebar();
   };
 
   return (
@@ -96,7 +95,8 @@ const Sidebar = ({
           <X size={24} />
         </button>
 
-        <div className="p-4 mt-3 sm:p-6 flex items-center border-b border-gray-700/50">
+        <div className="p-4 sm:p-6 flex items-center border-b border-gray-700/50">
+          {/* <div className="p-4 mt-2 sm:px-6 sm:py-7.5 flex items-center border-b border-gray-700/50"> */}
           <img
             src="/assets/images/logo.png"
             alt="SmartUML Logo"
@@ -107,7 +107,7 @@ const Sidebar = ({
           </h1>
         </div>
 
-        <div className="flex-1 flex flex-col p-4 gap-3">
+        <div className="flex-1 flex flex-col p-4 gap-3 min-h-0">
           <Button
             onClick={handleNewChatClick}
             fullWidth
@@ -122,7 +122,7 @@ const Sidebar = ({
           </h4>
 
           {/* 👇 REAL HISTORY LIST */}
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2 no-scrollbar">
             {loading ? (
               <div className="flex justify-center mt-4 text-gray-500">
                 <Loader className="animate-spin" size={20} />

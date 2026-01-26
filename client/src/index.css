@@ -14,3 +14,14 @@
     @apply w-24 h-14 sm:w-28 sm:h-16 rounded-full;
   }
 }
+
+/* Chrome, Safari aur Opera ke liye */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* IE, Edge aur Firefox ke liye */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}

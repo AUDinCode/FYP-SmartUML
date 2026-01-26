@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase"; // ⚠️ Path check kar lena agar error aye
@@ -68,6 +68,7 @@ const HistoryView = () => {
   // 👇 Main Content (Jab Data Aa Jaye)
   return (
     <div className="h-full flex flex-col bg-gray-900 text-white p-6 overflow-y-auto">
+    {/* <div className="h-full flex flex-col bg-gray-900 text-white overflow-y-auto"> */}
       {/* Header Area */}
       <div className="flex items-center mb-6 border-b border-gray-700 pb-4">
         <button

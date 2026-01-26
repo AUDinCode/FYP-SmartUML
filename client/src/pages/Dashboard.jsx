@@ -5,18 +5,14 @@ import { Send, ChevronDown, MessageSquare, AlertCircle } from "lucide-react";
 
 // Firebase Imports
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase";
-import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase"; // ✅ FIX: Path Check karo
+import { useAuth } from "../context/AuthContext"; // ✅ FIX: 'contexts' nahi 'context' (singular)
 
 // Components
 import Button from "../components/Button";
 import Card from "../components/Card";
 
-const DIAGRAM_TYPES = [
-  "Use Case Diagram",
-  "Class Diagram",
-  "Activity Diagram",
-];
+const DIAGRAM_TYPES = ["Use Case Diagram", "Class Diagram", "Activity Diagram"];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -27,121 +23,96 @@ const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [inputError, setInputError] = useState("");
 
-  // 👇 FINAL STRICT VALIDATION LOGIC
-  // hahahaha just for fun
   const validateInput = (text, type) => {
     const trimmedText = text.trim();
-    if (!trimmedText) return ""; 
-
+    if (!trimmedText) return "";
     const lowerText = trimmedText.toLowerCase();
-    const words = lowerText.split(/\s+/); // Words count
+    const words = lowerText.split(/\s+/);
 
-    // --- STEP 1: LONG WORD CHECK (Keyboard Smash Detection) ---
-    // Agar koi aik lafz bhi 25 characters se lamba hai (Screenshot 3 wala case)
-    // to ye confirm garbage hai.
-    const hasSuperLongWord = words.some(w => w.length > 25);
-    if (hasSuperLongWord) {
-        return "Please enter valid words. Some words look like random keyboard smashing.";
-    }
+    if (words.some((w) => w.length > 25)) return "Please enter valid words.";
+    if (words.length < 3)
+      return "Please enter a valid sentence (at least 3 words).";
 
-    // --- STEP 2: MINIMUM WORDS ---
-    if (words.length < 3) {
-        return "Please enter a valid sentence (at least 3 words).";
-    }
-
-    // --- STEP 3: "REAL ENGLISH" CHECK (Common Word Detection) ---
-    // Chahe 3 words hon ya 30, agar in mein se koi lafz nahi hai to ye garbage hai.
-    // Humne list thori bari ki hai taake "Design Login Page" jese sahi input fail na hon.
     const commonWords = [
-        'the', 'is', 'a', 'an', 'and', 'to', 'of', 'in', 'for', 'with', 'on', 'at', 'my', // Basic
-        'create', 'make', 'system', 'user', 'login', 'admin', 'page', 'app', 'design', 'process', // Context
-        'class', 'data', 'store', 'show', 'display', 'check', 'verify', 'start', 'end', 'if', 'then' // Actions
+      "the",
+      "is",
+      "a",
+      "an",
+      "and",
+      "to",
+      "of",
+      "in",
+      "for",
+      "with",
+      "on",
+      "create",
+      "make",
+      "system",
+      "user",
+      "login",
+      "admin",
+      "page",
+      "app",
+      "design",
+      "process",
+      "class",
+      "data",
     ];
-    
-    // Check: Kya input mein in mein se AIK BHI lafz hai?
-    const hasCommonWord = words.some(word => commonWords.includes(word));
+    if (!words.some((word) => commonWords.includes(word)))
+      return "This looks like random typing.";
+    if (trimmedText.length < 20) return "Description is too short.";
 
-    if (!hasCommonWord) {
-        return "This looks like random typing. Please use valid English sentences.";
-    }
-
-    // --- STEP 4: TOTAL LENGTH CHECK ---
-    if (trimmedText.length < 20) {
-      return "Description is too short. Please add more details for a better diagram.";
-    }
-
-    // --- STEP 5: CONTEXT CHECK (Specific Diagram Logic) ---
-    
-    // 1. Class Diagram
-    if (type === "Class Diagram" && 
-        !lowerText.includes("class") && 
-        !lowerText.includes("attribute") && 
-        !lowerText.includes("method") && 
-        !lowerText.includes("object") &&
-        !lowerText.includes("entity")) {
-        return "Tip: For Class Diagrams, you MUST mention 'class', 'attributes', 'methods' or 'objects'.";
-    }
-
-    // 2. Use Case Diagram
-    if (type === "Use Case Diagram" && 
-        !lowerText.includes("user") && 
-        !lowerText.includes("actor") && 
-        !lowerText.includes("interaction") && 
-        !lowerText.includes("use case") &&
-        !lowerText.includes("initiates")) {
-        return "Tip: For Use Cases, specific keywords like 'User', 'Actor', or 'Interaction' are required.";
-    }
-
-    // 3. Activity Diagram
-    if (type === "Activity Diagram" && 
-        !lowerText.includes("flow") && 
-        !lowerText.includes("step") && 
-        !lowerText.includes("activity") && 
-        !lowerText.includes("decision") && 
-        !lowerText.includes("start") && 
-        !lowerText.includes("end")) {
-        return "Tip: For Activity Diagrams, use words like 'Start', 'End', 'Flow', 'Step', or 'Decision'.";
-    }
-
-    return ""; // All Good
+    return "";
   };
 
-  // 👇 Real-time Checking
   useEffect(() => {
     if (!requirements) {
-        setInputError("");
-        return;
+      setInputError("");
+      return;
     }
-    const errorMsg = validateInput(requirements, selectedType);
-    setInputError(errorMsg);
+    setInputError(validateInput(requirements, selectedType));
   }, [requirements, selectedType]);
-
 
   const handleGenerate = async () => {
     const errorMsg = validateInput(requirements, selectedType);
     if (errorMsg) {
       setInputError(errorMsg);
-      return; 
+      return;
     }
-    
+
     setIsGenerating(true);
 
     try {
+      const response = await fetch("http://127.0.0.1:8000/generate-diagram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: requirements,
+          diagram_type: selectedType,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.status === "error") throw new Error(data.message);
+
+      const generatedCode = data.diagram_code;
+
       const docRef = await addDoc(collection(db, "chats"), {
         userId: currentUser.uid,
         title: selectedType + ": " + requirements.substring(0, 20) + "...",
         prompt: requirements,
         diagramType: selectedType,
-        diagramCode: "graph TD; A-->B;", 
+        diagramCode: generatedCode,
         createdAt: serverTimestamp(),
       });
 
       setIsGenerating(false);
       setRequirements("");
-      alert("Success! Chat saved to Database. Check Sidebar!");
 
+      // ✅ FIX: Ab ye sahi Editor page par le jayega
+      navigate(`/editor/${docRef.id}`);
     } catch (error) {
-      console.error("Error saving:", error);
+      console.error("Error:", error);
       alert("Error: " + error.message);
       setIsGenerating(false);
     }
@@ -154,84 +125,81 @@ const Dashboard = () => {
       <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-white">
         Dashboard
       </h1>
-      
       <div className="flex-1 flex flex-col">
-          <Card className="flex flex-col flex-1 p-4 sm:p-6 space-y-4 sm:space-y-5 bg-gray-800 border-gray-700">
-            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center">
-              <MessageSquare size={24} className="mr-3 text-blue-400" />
-              Start New Generation
-            </h2>
-            <p className="text-sm text-gray-400">
-              Describe your system requirements and select the desired UML diagram type.
-            </p>
+        <Card className="flex flex-col flex-1 p-4 sm:p-6 space-y-4 sm:space-y-5 bg-gray-800 border-gray-700">
+          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center">
+            <MessageSquare size={24} className="mr-3 text-blue-400" /> Start New
+            Generation
+          </h2>
+          <p className="text-sm text-gray-400">
+            Describe your system requirements and select the desired UML diagram
+            type.
+          </p>
 
-            {/* Diagram Type Dropdown */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Select Diagram Type
-              </label>
-              <div className="relative">
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="w-full py-2 sm:py-3 px-4 rounded-lg border border-white/30 bg-white/10 text-white text-sm sm:text-base focus:ring-blue-400 appearance-none cursor-pointer"
-                >
-                  {DIAGRAM_TYPES.map((type) => (
-                    <option key={type} value={type} className="bg-gray-800 text-white">
-                      {type}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={18} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Requirements Input */}
-            <div className="flex-1 flex flex-col">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                User Requirements (Text Prompt)
-              </label>
-              
-              <textarea
-                placeholder="E.g., A user should be able to log in, and an admin can approve diagrams..."
-                value={requirements}
-                onChange={(e) => setRequirements(e.target.value)}
-                className={`flex-1 w-full p-3 sm:p-4 rounded-lg border bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 resize-none min-h-[150px] sm:min-h-[200px] ${
-                    inputError ? "border-red-500 focus:ring-red-500" : "border-white/30 focus:ring-blue-400"
-                }`}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Select Diagram Type
+            </label>
+            <div className="relative">
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="w-full py-2 sm:py-3 px-4 rounded-lg border border-white/30 bg-white/10 text-white text-sm sm:text-base focus:ring-blue-400 appearance-none cursor-pointer"
+              >
+                {DIAGRAM_TYPES.map((type) => (
+                  <option
+                    key={type}
+                    value={type}
+                    className="bg-gray-800 text-white"
+                  >
+                    {type}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={18}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 pointer-events-none"
               />
-
-              {/* Error Message Display Area */}
-              {inputError && (
-                  <div className="mt-2 text-red-400 text-sm flex items-center animate-pulse">
-                      <AlertCircle size={16} className="mr-2" />
-                      {inputError}
-                  </div>
-              )}
             </div>
+          </div>
 
-            {/* Generate Button */}
-            <Button
-              fullWidth
-              onClick={handleGenerate}
-              disabled={isButtonDisabled}
-              className={`flex items-center justify-center text-sm sm:text-base cursor-pointer ${
-                  isButtonDisabled ? "opacity-50 cursor-not-allowed grayscale" : ""
-              }`}
-            >
-              {isGenerating ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-3"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Send size={20} className="mr-2" />
-                  Generate Diagram
-                </>
-              )}
-            </Button>
-          </Card>
+          <div className="flex-1 flex flex-col">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              User Requirements
+            </label>
+            <textarea
+              placeholder="E.g., A user should be able to log in..."
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              className={`flex-1 w-full p-3 sm:p-4 rounded-lg border bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 resize-none min-h-[150px] sm:min-h-[200px] no-scrollbar ${inputError ? "border-red-500 focus:ring-red-500" : "border-white/30 focus:ring-blue-400"}`}
+            />
+            {inputError && (
+              <div className="mt-2 text-red-400 text-sm flex items-center animate-pulse">
+                <AlertCircle size={16} className="mr-2" />
+                {inputError}
+              </div>
+            )}
+          </div>
+
+          <Button
+            fullWidth
+            onClick={handleGenerate}
+            disabled={isButtonDisabled}
+            className={`flex items-center justify-center text-sm sm:text-base cursor-pointer ${isButtonDisabled ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
+          >
+            {isGenerating ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-3"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Send size={20} className="mr-2" />
+                Generate Diagram
+              </>
+            )}
+          </Button>
+        </Card>
       </div>
     </div>
   );
