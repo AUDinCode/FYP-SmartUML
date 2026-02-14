@@ -1,215 +1,392 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import plantumlEncoder from "plantuml-encoder";
-import {
-  Save,
-  Download,
-  ArrowLeft,
-  FileImage,
-  Layers,
-  Loader,
-  ZoomIn,
-  ZoomOut,
-  Edit,
-  X,
-  Copy
-} from "lucide-react";
-
+import { ArrowLeft, Save, Loader, Edit, X, Code, Eye, Download, RefreshCw } from "lucide-react";
 import Button from "../components/Button";
-import Dropdown from "../components/Dropdown";
+
+
 
 const DiagramEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const iframeRef = useRef(null);
-
-  // States
-  const [diagramCode, setDiagramCode] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  
+  // State management
+  const [xmlData, setXmlData] = useState("");
+  const [originalXmlData, setOriginalXmlData] = useState(""); // Track original for "unsaved changes"
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [zoom, setZoom] = useState(1);
-  const [isEditing, setIsEditing] = useState(false); // Toggle View/Edit Mode
+  const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showXmlPreview, setShowXmlPreview] = useState(false);
+  const [error, setError] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // --- 1. FETCH DATA (Image View Setup) ---
+  // Fetch diagram from Firebase
   useEffect(() => {
     const fetchDiagram = async () => {
-      if (!id) return;
+      if (!id) {
+        setError("No diagram ID provided");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
+        setError(null);
+        
         const docRef = doc(db, "chats", id);
         const docSnap = await getDoc(docRef);
-
+        
         if (docSnap.exists()) {
-          const code = docSnap.data().diagramCode;
-          setDiagramCode(code);
-          
-          if (code) {
-            // ✅ SVG URL generate kar rahe hain (Ye kabhi fail nahi hota)
-            const encoded = plantumlEncoder.encode(code);
-            setImageUrl(`https://www.plantuml.com/plantuml/svg/${encoded}`);
-          } else {
-            setError("No Diagram Code found.");
-          }
+          const data = docSnap.data().diagramCode || "";
+          setXmlData(data);
+          setOriginalXmlData(data);
+        } else {
+          setError("Diagram not found");
         }
       } catch (err) {
-        console.error("Error:", err);
-        setError("Failed to load diagram.");
+        console.error("Error fetching diagram:", err);
+        setError("Failed to load diagram. Please try again.");
       } finally {
         setLoading(false);
       }
     };
+
     fetchDiagram();
   }, [id]);
 
-  // --- 2. CONFIGURATION FOR DRAW.IO ---
-  // Simple URL rakha hai taake load jaldi ho
-  const DRAWIO_URL = "https://embed.diagrams.net/?embed=1&ui=atlas&spin=1&proto=json&noSaveBtn=1";
+  // Draw.io embed configuration
+  const DRAWIO_URL = "https://embed.diagrams.net/?embed=1&ui=atlas&spin=1&proto=json&noSaveBtn=1&saveAndExit=0";
 
-  // --- 3. AUTO COPY ON EDIT (Smart Feature) 🧠 ---
+  // Handle Draw.io iframe communication
   useEffect(() => {
-    if (isEditing && diagramCode) {
-      // Jaise hi Editor khulega, Code clipboard par copy ho jayega
-      navigator.clipboard.writeText(diagramCode);
-    }
-  }, [isEditing, diagramCode]);
-
-  // --- 4. IFRAME LOADER (Fix for Spinning) ---
-  useEffect(() => {
-    if (!isEditing) return;
+    if (!isEditing || !xmlData) return;
 
     const handleMessage = (event) => {
-      if (!event.origin.includes("diagrams.net") && !event.origin.includes("draw.io")) return;
-      
-      let data;
-      try { data = JSON.parse(event.data); } catch (e) { return; }
+      // Security check: only accept messages from diagrams.net
+      if (!event.origin.includes("diagrams.net") && !event.origin.includes("draw.io")) {
+        return;
+      }
 
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (e) {
+        return;
+      }
+
+      // Handle initialization
       if (data.event === "init") {
-        // Hum "Load" action bhej rahe hain lekin XML khali rakha hai
-        // Taake wo "Loading..." par na phansay.
-        if (iframeRef.current) {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ action: "load", autosave: 0 }), 
-            "*"
-          );
+        console.log("🔌 Draw.io initialized, loading XML...");
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({
+            action: "load",
+            autosave: 0,
+            xml: xmlData
+          }),
+          "*"
+        );
+      }
+
+      // Handle diagram changes (for tracking unsaved changes)
+      if (data.event === "save" || data.event === "autosave") {
+        console.log("📝 Diagram modified");
+        const newXml = data.xml;
+        if (newXml && newXml !== xmlData) {
+          setXmlData(newXml);
+          setHasUnsavedChanges(true);
+        }
+      }
+
+      // Handle export
+      if (data.event === "export") {
+        console.log("📤 Diagram exported");
+        const newXml = data.data;
+        if (newXml) {
+          setXmlData(newXml);
+          setHasUnsavedChanges(true);
         }
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [isEditing]);
+  }, [isEditing, xmlData]);
 
+  // Save diagram to Firebase
+  const handleSave = async () => {
+    if (!id || !xmlData) return;
 
-  // --- ACTIONS ---
-  const handleBack = () => navigate("/dashboard");
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
-  const handleSave = () => alert("Diagram is auto-saved in Firebase!");
-
-  const handleExport = async (format) => {
-    if (!imageUrl) return;
     try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `diagram-${id}.svg`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      alert("Download failed");
+      setSaving(true);
+      setError(null);
+
+      // Request export from Draw.io if in editing mode
+      if (isEditing && iframeRef.current) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({
+            action: "export",
+            format: "xml"
+          }),
+          "*"
+        );
+        
+        // Wait a bit for the export response
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      const docRef = doc(db, "chats", id);
+      await updateDoc(docRef, {
+        diagramCode: xmlData,
+        updatedAt: new Date().toISOString()
+      });
+
+      setOriginalXmlData(xmlData);
+      setHasUnsavedChanges(false);
+      console.log("✅ Diagram saved successfully");
+    } catch (err) {
+      console.error("Error saving diagram:", err);
+      setError("Failed to save diagram. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const exportFormats = [
-    { label: "Export as SVG", icon: Layers, action: () => handleExport("SVG") },
-    { label: "Export as PNG", icon: FileImage, action: () => handleExport("PNG") },
-  ];
+  // Download XML file
+  const handleDownload = () => {
+    const blob = new Blob([xmlData], { type: "application/xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `diagram-${id}.drawio`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Toggle editing mode
+  const toggleEditing = () => {
+    if (isEditing && hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        "You have unsaved changes. Do you want to save before closing the editor?"
+      );
+      if (confirmed) {
+        handleSave();
+      }
+    }
+    setIsEditing(!isEditing);
+  };
+
+  // Reload diagram from Firebase
+  const handleReload = async () => {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        "You have unsaved changes. Reloading will discard them. Continue?"
+      );
+      if (!confirmed) return;
+    }
+
+    setLoading(true);
+    try {
+      const docRef = doc(db, "chats", id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data().diagramCode || "";
+        setXmlData(data);
+        setOriginalXmlData(data);
+        setHasUnsavedChanges(false);
+      }
+    } catch (err) {
+      setError("Failed to reload diagram");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        <div className="text-center">
+          <Loader className="animate-spin mx-auto mb-4" size={48} />
+          <p className="text-lg">Loading diagram...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !xmlData) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        <div className="text-center max-w-md">
+          <X className="mx-auto mb-4 text-red-500" size={48} />
+          <h2 className="text-2xl font-bold mb-2">Error</h2>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <Button onClick={() => navigate("/dashboard")} className="bg-purple-600">
+            <ArrowLeft size={18} /> Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
-      {/* HEADER */}
-      <header className="p-3 bg-gray-800 border-b border-gray-700 flex justify-between items-center sticky top-0 z-10">
-        <div className="flex items-center space-x-4">
-          <Button onClick={handleBack} className="bg-gray-700 hover:bg-gray-600 text-gray-300">
+      {/* Header */}
+      <header className="p-3 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => navigate("/dashboard")}
+            className="bg-gray-700 hover:bg-gray-600"
+          >
             <ArrowLeft size={18} /> Back
           </Button>
-          <h1 className="text-lg font-semibold hidden sm:block">
-            {isEditing ? "Advanced Editor" : "Diagram Preview"}
-          </h1>
+          
+          {hasUnsavedChanges && (
+            <span className="text-yellow-400 text-sm flex items-center gap-1">
+              <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+              Unsaved changes
+            </span>
+          )}
         </div>
 
-        <div className="flex space-x-3">
-          {/* Toggle Button: View vs Edit */}
-          <Button 
-            onClick={() => setIsEditing(!isEditing)} 
-            className={`flex items-center gap-2 ${isEditing ? "bg-red-600 hover:bg-red-700" : "bg-purple-600 hover:bg-purple-700"}`}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleReload}
+            className="bg-gray-700 hover:bg-gray-600"
+            title="Reload diagram"
           >
-            {isEditing ? <><X size={18} /> Close Editor</> : <><Edit size={18} /> Edit Diagram</>}
+            <RefreshCw size={18} />
           </Button>
 
-          {!isEditing && (
-             <Dropdown label="Export" icon={<Download size={18} />} options={exportFormats} className="bg-gray-600 hover:bg-gray-700" />
-          )}
-          
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-            <Save size={18} /> <span className="ml-2 hidden sm:inline">Save</span>
+          <Button
+            onClick={() => setShowXmlPreview(!showXmlPreview)}
+            className="bg-gray-700 hover:bg-gray-600"
+            title="Toggle XML preview"
+          >
+            {showXmlPreview ? <Eye size={18} /> : <Code size={18} />}
+          </Button>
+
+          <Button
+            onClick={handleDownload}
+            className="bg-blue-600 hover:bg-blue-700"
+            title="Download as .drawio file"
+          >
+            <Download size={18} /> Download
+          </Button>
+
+          <Button
+            onClick={handleSave}
+            disabled={saving || !hasUnsavedChanges}
+            className={`${
+              saving || !hasUnsavedChanges
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
+          >
+            {saving ? (
+              <>
+                <Loader className="animate-spin" size={18} /> Saving...
+              </>
+            ) : (
+              <>
+                <Save size={18} /> Save
+              </>
+            )}
+          </Button>
+
+          <Button
+            onClick={toggleEditing}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            {isEditing ? (
+              <>
+                <X size={18} /> Close Editor
+              </>
+            ) : (
+              <>
+                <Edit size={18} /> Edit Diagram
+              </>
+            )}
           </Button>
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 overflow-hidden relative bg-gray-100">
-        
-        {/* VIEW MODE: SVG Image (Fast & Reliable) */}
-        {!isEditing && (
-          <div className="w-full h-full flex items-center justify-center overflow-auto p-8 bg-gray-800/50">
-            {loading && <Loader size={40} className="animate-spin text-blue-500" />}
-            {error && <div className="text-red-400">{error}</div>}
-            
-            {!loading && !error && imageUrl && (
-              <img
-                src={imageUrl}
-                alt="Diagram"
-                className="shadow-2xl bg-white p-4 rounded-lg transition-transform duration-200"
-                style={{ transform: `scale(${zoom})` }}
-              />
-            )}
+      {/* Error banner */}
+      {error && (
+        <div className="bg-red-900/50 border-b border-red-800 px-4 py-2 text-sm flex items-center gap-2">
+          <X size={16} className="text-red-400" />
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-red-400 hover:text-red-300"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
-            {/* Zoom Controls */}
-            <div className="fixed bottom-6 right-6 flex flex-col space-y-2">
-              <Button onClick={handleZoomIn} className="bg-gray-700 p-3 rounded-full shadow-lg"><ZoomIn size={20} /></Button>
-              <Button onClick={handleZoomOut} className="bg-gray-700 p-3 rounded-full shadow-lg"><ZoomOut size={20} /></Button>
+      {/* Main content area */}
+      <div className="flex-1 overflow-hidden relative bg-gray-100">
+        {/* XML Preview Mode */}
+        {!isEditing && showXmlPreview && (
+          <div className="w-full h-full flex flex-col items-center justify-start p-8 bg-gray-800">
+            <div className="w-full max-w-4xl">
+              <h2 className="text-2xl font-bold mb-4 text-white flex items-center gap-2">
+                <Code size={24} /> XML Source Code
+              </h2>
+              <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 h-[calc(100vh-200px)] overflow-auto">
+                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-words">
+                  {xmlData || "No XML data available"}
+                </pre>
+              </div>
             </div>
           </div>
         )}
 
-        {/* EDIT MODE: Draw.io Iframe */}
-        {isEditing && (
-          <div className="w-full h-full bg-white relative">
-            
-            {/* Instruction Overlay */}
-            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full shadow-lg border border-yellow-300 flex items-center gap-2 text-sm font-medium animate-bounce">
-              <Copy size={16}/> 
-              <span>Code Copied! Press <b>Ctrl + V</b> to paste diagram.</span>
-            </div>
-
-            <div className="absolute top-2 right-2 z-20 bg-gray-800 text-white p-2 text-xs rounded opacity-80">
-              Insert &gt; Advanced &gt; PlantUML
+        {/* Read-only Preview Mode */}
+        {!isEditing && !showXmlPreview && (
+          <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-gray-800/50">
+            <div className="text-center mb-4">
+              <Eye size={48} className="mx-auto mb-2 text-purple-400" />
+              <h2 className="text-2xl font-bold mb-2 text-white">Preview Mode</h2>
+              <p className="text-gray-400">
+                Click "Edit Diagram" to open the Draw.io editor
+              </p>
             </div>
             
-            <iframe
-              ref={iframeRef}
-              src={DRAWIO_URL}
-              className="w-full h-full border-none"
-              title="Draw.io Editor"
-            />
+            <div className="w-full max-w-2xl bg-gray-900 border border-gray-700 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-700">
+                <span className="text-sm font-semibold text-gray-300">
+                  XML Preview (First 500 characters)
+                </span>
+                <Button
+                  onClick={() => setShowXmlPreview(true)}
+                  className="bg-gray-700 hover:bg-gray-600 text-xs py-1 px-2"
+                >
+                  View Full
+                </Button>
+              </div>
+              <div className="h-48 overflow-auto">
+                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-words">
+                  {xmlData ? xmlData.substring(0, 500) + (xmlData.length > 500 ? "..." : "") : "Loading..."}
+                </pre>
+              </div>
+            </div>
           </div>
+        )}
+
+        {/* Draw.io Editor Mode */}
+        {isEditing && (
+          <iframe
+            ref={iframeRef}
+            src={DRAWIO_URL}
+            className="w-full h-full border-none"
+            title="Draw.io Diagram Editor"
+          />
         )}
       </div>
     </div>
