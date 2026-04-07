@@ -13,3 +13,8 @@ __pycache__/
 *.egg-info/
 .venv
 venv/
+
+# Sensitive Info
+.env
+backend/.env
+client/.env
