@@ -2,232 +2,212 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import { ArrowLeft, Save, Loader, Edit, X, Code, Eye, Download, RefreshCw } from "lucide-react";
-import Button from "../components/Button";
+import {
+  ArrowLeft, Save, Loader, Edit, X,
+  Code, Eye, Download, RefreshCw
+} from "lucide-react";
+import DiagramViewer from "../components/DiagramViewer";
 
+// ── Typing animation words ──
+// ── Typing animation words ──
+// ── Typing animation words ──
+const FULL_PHRASE    = "Build · Preview · Refine";
+const TYPING_SPEED   = 90;
+const DELETING_SPEED = 45;
+const PAUSE_AFTER    = 1500;
 
+const useTypingLoop = () => {
+  const [displayed, setDisplayed]   = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    let t;
+
+    if (!isDeleting && displayed.length < FULL_PHRASE.length) {
+      // Still typing
+      t = setTimeout(() => {
+        setDisplayed(FULL_PHRASE.slice(0, displayed.length + 1));
+      }, TYPING_SPEED);
+
+    } else if (!isDeleting && displayed.length === FULL_PHRASE.length) {
+      // Fully typed — pause then start deleting
+      t = setTimeout(() => {
+        setIsDeleting(true);
+      }, PAUSE_AFTER);
+
+    } else if (isDeleting && displayed.length > 0) {
+      // Deleting character by character
+      t = setTimeout(() => {
+        setDisplayed((prev) => prev.slice(0, -1));
+      }, DELETING_SPEED);
+
+    } else if (isDeleting && displayed.length === 0) {
+      // Fully deleted — pause then start typing again
+      t = setTimeout(() => {
+        setIsDeleting(false);
+      }, PAUSE_AFTER / 2);
+    }
+
+    return () => clearTimeout(t);
+  }, [displayed, isDeleting]);
+
+  return displayed;
+};
 
 const DiagramEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const iframeRef = useRef(null);
-  
-  // State management
-  const [xmlData, setXmlData] = useState("");
-  const [originalXmlData, setOriginalXmlData] = useState(""); // Track original for "unsaved changes"
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showXmlPreview, setShowXmlPreview] = useState(false);
-  const [error, setError] = useState(null);
+
+  const [xmlData, setXmlData]                     = useState("");
+  const [originalXmlData, setOriginalXmlData]     = useState("");
+  const [loading, setLoading]                     = useState(true);
+  const [saving, setSaving]                       = useState(false);
+  const [isEditing, setIsEditing]                 = useState(false);
+  const [editorLoading, setEditorLoading]         = useState(false);
+  const [showXmlPreview, setShowXmlPreview]       = useState(false);
+  const [error, setError]                         = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Fetch diagram from Firebase
+  const typedText = useTypingLoop();
+
   useEffect(() => {
     const fetchDiagram = async () => {
-      if (!id) {
-        setError("No diagram ID provided");
-        setLoading(false);
-        return;
-      }
-
+      if (!id) { setError("No diagram ID provided"); setLoading(false); return; }
       try {
-        setLoading(true);
-        setError(null);
-        
-        const docRef = doc(db, "chats", id);
+        setLoading(true); setError(null);
+        const docRef  = doc(db, "chats", id);
         const docSnap = await getDoc(docRef);
-        
         if (docSnap.exists()) {
           const data = docSnap.data().diagramCode || "";
-          setXmlData(data);
-          setOriginalXmlData(data);
-        } else {
-          setError("Diagram not found");
-        }
+          setXmlData(data); setOriginalXmlData(data);
+        } else { setError("Diagram not found"); }
       } catch (err) {
         console.error("Error fetching diagram:", err);
         setError("Failed to load diagram. Please try again.");
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     };
-
     fetchDiagram();
   }, [id]);
 
-  // Draw.io embed configuration
-  const DRAWIO_URL = "https://embed.diagrams.net/?embed=1&ui=atlas&spin=1&proto=json&noSaveBtn=1&saveAndExit=0";
+  const DRAWIO_URL =
+    "https://embed.diagrams.net/" +
+    "?embed=1&ui=dark&spin=1&proto=json&noSaveBtn=1&noExitBtn=1&saveAndExit=0&chrome=1";
 
-  // Handle Draw.io iframe communication
   useEffect(() => {
     if (!isEditing || !xmlData) return;
-
     const handleMessage = (event) => {
-      // Security check: only accept messages from diagrams.net
-      if (!event.origin.includes("diagrams.net") && !event.origin.includes("draw.io")) {
-        return;
-      }
-
+      if (!event.origin.includes("diagrams.net") && !event.origin.includes("draw.io")) return;
       let data;
-      try {
-        data = JSON.parse(event.data);
-      } catch (e) {
-        return;
-      }
+      try { data = JSON.parse(event.data); } catch (e) { return; }
 
-      // Handle initialization
       if (data.event === "init") {
-        console.log("🔌 Draw.io initialized, loading XML...");
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({
-            action: "load",
-            autosave: 0,
-            xml: xmlData
-          }),
-          "*"
+        iframeRef.current?.contentWindow.postMessage(
+          JSON.stringify({ action: "configure", config: { css: `
+            .geMenubarContainer, .mxMenubar, .geMenubar { display: none !important; height: 0 !important; }
+            .geTabContainer, .geFooterContainer, .geStatusbar, .gePageControl { display: none !important; height: 0 !important; }
+            .geDiagramContainer { top: 0 !important; bottom: 0 !important; }
+          `}}), "*"
+        );
+        setEditorLoading(false);
+        iframeRef.current?.contentWindow.postMessage(
+          JSON.stringify({ action: "load", autosave: 0, xml: xmlData }), "*"
         );
       }
-
-      // Handle diagram changes (for tracking unsaved changes)
       if (data.event === "save" || data.event === "autosave") {
-        console.log("📝 Diagram modified");
         const newXml = data.xml;
-        if (newXml && newXml !== xmlData) {
-          setXmlData(newXml);
-          setHasUnsavedChanges(true);
-        }
+        if (newXml && newXml !== xmlData) { setXmlData(newXml); setHasUnsavedChanges(true); }
       }
-
-      // Handle export
       if (data.event === "export") {
-        console.log("📤 Diagram exported");
         const newXml = data.data;
-        if (newXml) {
-          setXmlData(newXml);
-          setHasUnsavedChanges(true);
-        }
+        if (newXml) { setXmlData(newXml); setHasUnsavedChanges(true); }
       }
     };
-
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [isEditing, xmlData]);
 
-  // Save diagram to Firebase
   const handleSave = async () => {
     if (!id || !xmlData) return;
-
     try {
-      setSaving(true);
-      setError(null);
-
-      // Request export from Draw.io if in editing mode
+      setSaving(true); setError(null);
       if (isEditing && iframeRef.current) {
         iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({
-            action: "export",
-            format: "xml"
-          }),
-          "*"
+          JSON.stringify({ action: "export", format: "xml" }), "*"
         );
-        
-        // Wait a bit for the export response
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-
       const docRef = doc(db, "chats", id);
-      await updateDoc(docRef, {
-        diagramCode: xmlData,
-        updatedAt: new Date().toISOString()
-      });
-
+      await updateDoc(docRef, { diagramCode: xmlData, updatedAt: new Date().toISOString() });
       setOriginalXmlData(xmlData);
       setHasUnsavedChanges(false);
-      console.log("✅ Diagram saved successfully");
     } catch (err) {
       console.error("Error saving diagram:", err);
       setError("Failed to save diagram. Please try again.");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
-  // Download XML file
   const handleDownload = () => {
     const blob = new Blob([xmlData], { type: "application/xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `diagram-${id}.drawio`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = `diagram-${id}.drawio`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
   };
 
-  // Toggle editing mode
   const toggleEditing = () => {
     if (isEditing && hasUnsavedChanges) {
-      const confirmed = window.confirm(
-        "You have unsaved changes. Do you want to save before closing the editor?"
-      );
-      if (confirmed) {
-        handleSave();
-      }
+      const confirmed = window.confirm("You have unsaved changes. Save before closing?");
+      if (confirmed) handleSave();
     }
+    if (!isEditing) setEditorLoading(true);
     setIsEditing(!isEditing);
   };
 
-  // Reload diagram from Firebase
   const handleReload = async () => {
     if (hasUnsavedChanges) {
-      const confirmed = window.confirm(
-        "You have unsaved changes. Reloading will discard them. Continue?"
-      );
+      const confirmed = window.confirm("Reloading will discard unsaved changes. Continue?");
       if (!confirmed) return;
     }
-
     setLoading(true);
     try {
-      const docRef = doc(db, "chats", id);
+      const docRef  = doc(db, "chats", id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data().diagramCode || "";
-        setXmlData(data);
-        setOriginalXmlData(data);
-        setHasUnsavedChanges(false);
+        setXmlData(data); setOriginalXmlData(data); setHasUnsavedChanges(false);
       }
-    } catch (err) {
-      setError("Failed to reload diagram");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError("Failed to reload diagram"); }
+    finally { setLoading(false); }
   };
 
-  // Loading state
+  // ── Loading ──
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
         <div className="text-center">
-          <Loader className="animate-spin mx-auto mb-4" size={48} />
-          <p className="text-lg">Loading diagram...</p>
+          <Loader className="animate-spin mx-auto mb-4 text-blue-400" size={40} />
+          <p className="text-gray-400">Loading diagram...</p>
         </div>
       </div>
     );
   }
 
-  // Error state
+  // ── Error ──
   if (error && !xmlData) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
         <div className="text-center max-w-md">
-          <X className="mx-auto mb-4 text-red-500" size={48} />
-          <h2 className="text-2xl font-bold mb-2">Error</h2>
+          <X className="mx-auto mb-4 text-red-400" size={40} />
+          <h2 className="text-xl font-bold mb-2">Error</h2>
           <p className="text-gray-400 mb-4">{error}</p>
-          <Button onClick={() => navigate("/dashboard")} className="bg-purple-600">
-            <ArrowLeft size={18} /> Back to Dashboard
-          </Button>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 mx-auto px-4 py-2 rounded-xl bg-gray-800 border border-gray-700 hover:bg-gray-700 text-white transition-all"
+          >
+            <ArrowLeft size={16} /> Back to Dashboard
+          </button>
         </div>
       </div>
     );
@@ -235,111 +215,176 @@ const DiagramEditor = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
-      {/* Header */}
-      <header className="p-3 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Button
+
+      {/* ── Navbar ── */}
+      <header className="
+        px-6 py-4 flex justify-between items-center
+        bg-gray-900 border-b border-gray-700/50
+        shadow-[0_2px_12px_rgba(0,0,0,0.3)]
+        min-h-[68px]
+      ">
+        {/* Left */}
+        <div className="flex items-center gap-3">
+          <button
             onClick={() => navigate("/dashboard")}
-            className="bg-gray-700 hover:bg-gray-600"
+            className="
+              flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+              bg-gray-800 border border-gray-700/60 text-white
+              hover:bg-gray-700 hover:border-gray-600
+              transition-all duration-200 cursor-pointer
+            "
           >
-            <ArrowLeft size={18} /> Back
-          </Button>
-          
+            <ArrowLeft size={17} /> Back
+          </button>
+
           {hasUnsavedChanges && (
-            <span className="text-yellow-400 text-sm flex items-center gap-1">
-              <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+            <span className="flex items-center gap-1.5 text-yellow-400 text-xs font-medium">
+              <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
               Unsaved changes
             </span>
           )}
         </div>
 
+        {/* ── Center — Typing animation ── */}
+        <div className="hidden md:flex items-center gap-3 absolute left-1/2 -translate-x-1/2">
+          {/* Accent bar */}
+          <div className="w-0.5 h-6 rounded-full bg-gradient-to-b from-blue-400 to-indigo-500" />
+
+          {/* Typed text + cursor */}
+          <div className="flex items-center gap-0 min-w-[180px]">
+            <span className="
+              text-sm font-bold tracking-wide
+              bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400
+              bg-clip-text text-transparent
+              whitespace-nowrap
+            ">
+              {typedText}
+            </span>
+            {/* Blinking cursor */}
+            <span className="
+              inline-block w-[2px] h-[1.1em] ml-[2px]
+              bg-gradient-to-b from-blue-400 to-indigo-500
+              rounded-full
+              animate-[blink_1s_step-end_infinite]
+            " />
+          </div>
+        </div>
+
+        {/* Right */}
         <div className="flex items-center gap-2">
-          <Button
+          <button
             onClick={handleReload}
-            className="bg-gray-700 hover:bg-gray-600"
             title="Reload diagram"
+            className="
+              w-10 h-10 flex items-center justify-center rounded-xl
+              bg-gray-800 border border-gray-700/60 text-gray-300
+              hover:bg-gray-700 hover:text-white hover:border-gray-600
+              transition-all duration-200 cursor-pointer
+            "
           >
-            <RefreshCw size={18} />
-          </Button>
+            <RefreshCw size={17} />
+          </button>
 
-          <Button
+          <button
             onClick={() => setShowXmlPreview(!showXmlPreview)}
-            className="bg-gray-700 hover:bg-gray-600"
-            title="Toggle XML preview"
+            title={showXmlPreview ? "Show preview" : "Show XML"}
+            className="
+              w-10 h-10 flex items-center justify-center rounded-xl
+              bg-gray-800 border border-gray-700/60 text-gray-300
+              hover:bg-gray-700 hover:text-white hover:border-gray-600
+              transition-all duration-200 cursor-pointer
+            "
           >
-            {showXmlPreview ? <Eye size={18} /> : <Code size={18} />}
-          </Button>
+            {showXmlPreview ? <Eye size={17} /> : <Code size={17} />}
+          </button>
 
-          <Button
+          <div className="w-px h-7 bg-gray-700/60 mx-1" />
+
+          <button
             onClick={handleDownload}
-            className="bg-blue-600 hover:bg-blue-700"
-            title="Download as .drawio file"
+            className="
+              flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+              bg-gradient-to-r from-blue-500 to-indigo-600 text-white
+              hover:shadow-[0_0_16px_rgba(37,99,235,0.5)]
+              transition-all duration-200 cursor-pointer
+            "
           >
-            <Download size={18} /> Download
-          </Button>
+            <Download size={16} /> Download
+          </button>
 
-          <Button
+          <button
             onClick={handleSave}
             disabled={saving || !hasUnsavedChanges}
-            className={`${
-              saving || !hasUnsavedChanges
-                ? "bg-gray-600 cursor-not-allowed"
-                : "bg-green-600 hover:bg-green-700"
-            }`}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+              transition-all duration-200
+              ${saving || !hasUnsavedChanges
+                ? "bg-gray-800 border border-gray-700/60 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:shadow-[0_0_16px_rgba(37,99,235,0.5)] cursor-pointer"
+              }
+            `}
           >
-            {saving ? (
-              <>
-                <Loader className="animate-spin" size={18} /> Saving...
-              </>
-            ) : (
-              <>
-                <Save size={18} /> Save
-              </>
-            )}
-          </Button>
+            {saving
+              ? <><Loader className="animate-spin" size={16} /> Saving...</>
+              : <><Save size={16} /> Save</>
+            }
+          </button>
 
-          <Button
+          <button
             onClick={toggleEditing}
-            className="bg-purple-600 hover:bg-purple-700"
+            className="
+              flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+              bg-gradient-to-r from-blue-500 to-indigo-600 text-white
+              hover:shadow-[0_0_16px_rgba(37,99,235,0.5)]
+              transition-all duration-200 cursor-pointer
+            "
           >
-            {isEditing ? (
-              <>
-                <X size={18} /> Close Editor
-              </>
-            ) : (
-              <>
-                <Edit size={18} /> Edit Diagram
-              </>
-            )}
-          </Button>
+            {isEditing
+              ? <><X size={16} /> Close Editor</>
+              : <><Edit size={16} /> Edit Diagram</>
+            }
+          </button>
         </div>
       </header>
 
-      {/* Error banner */}
+      {/* ── Error banner ── */}
       {error && (
-        <div className="bg-red-900/50 border-b border-red-800 px-4 py-2 text-sm flex items-center gap-2">
-          <X size={16} className="text-red-400" />
+        <div className="bg-red-900/30 border-b border-red-800/50 px-4 py-2 text-sm flex items-center gap-2 text-red-300">
+          <X size={14} className="text-red-400 shrink-0" />
           <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="ml-auto text-red-400 hover:text-red-300"
-          >
+          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300 cursor-pointer">
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Main content area */}
-      <div className="flex-1 overflow-hidden relative bg-gray-100">
-        {/* XML Preview Mode */}
+      {/* ── Main content ── */}
+      <div className="flex-1 overflow-hidden relative bg-gray-900 p-4 sm:p-6">
+
+        {/* XML Source Mode */}
         {!isEditing && showXmlPreview && (
-          <div className="w-full h-full flex flex-col items-center justify-start p-8 bg-gray-800">
-            <div className="w-full max-w-4xl">
-              <h2 className="text-2xl font-bold mb-4 text-white flex items-center gap-2">
-                <Code size={24} /> XML Source Code
-              </h2>
-              <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 h-[calc(100vh-200px)] overflow-auto">
-                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-words">
+          <div className="w-full h-full flex flex-col">
+            <div className="mb-4 pb-4 border-b border-gray-700/60 flex items-center gap-3">
+              <div className="w-1 h-7 rounded-full bg-gradient-to-b from-blue-400 to-indigo-500" />
+              <h1 className="text-xl font-bold text-white">XML Source</h1>
+            </div>
+            <div className="
+              flex-1 rounded-2xl border border-white/10 overflow-hidden
+              bg-gradient-to-b from-gray-800/80 to-gray-900/80
+              shadow-[0_0_30px_rgba(37,99,235,0.07)] relative
+            ">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+              <div className="flex items-center justify-between bg-gray-900/80 px-4 py-2 border-b border-gray-700/60 mt-[2px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-red-500/70"    />
+                  <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
+                  <span className="w-3 h-3 rounded-full bg-green-500/70"  />
+                </div>
+                <span className="text-[11px] text-gray-500 font-mono">diagram.xml</span>
+                <div className="w-12" />
+              </div>
+              <div className="overflow-auto h-[calc(100%-36px)] no-scrollbar">
+                <pre className="p-4 font-mono text-sm text-green-300 whitespace-pre-wrap break-words leading-6">
                   {xmlData || "No XML data available"}
                 </pre>
               </div>
@@ -347,50 +392,58 @@ const DiagramEditor = () => {
           </div>
         )}
 
-        {/* Read-only Preview Mode */}
+        {/* Diagram Viewer Mode */}
         {!isEditing && !showXmlPreview && (
-          <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-gray-800/50">
-            <div className="text-center mb-4">
-              <Eye size={48} className="mx-auto mb-2 text-purple-400" />
-              <h2 className="text-2xl font-bold mb-2 text-white">Preview Mode</h2>
-              <p className="text-gray-400">
-                Click "Edit Diagram" to open the Draw.io editor
-              </p>
-            </div>
-            
-            <div className="w-full max-w-2xl bg-gray-900 border border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-700">
-                <span className="text-sm font-semibold text-gray-300">
-                  XML Preview (First 500 characters)
-                </span>
-                <Button
-                  onClick={() => setShowXmlPreview(true)}
-                  className="bg-gray-700 hover:bg-gray-600 text-xs py-1 px-2"
-                >
-                  View Full
-                </Button>
-              </div>
-              <div className="h-48 overflow-auto">
-                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-words">
-                  {xmlData ? xmlData.substring(0, 500) + (xmlData.length > 500 ? "..." : "") : "Loading..."}
-                </pre>
-              </div>
-            </div>
+          <div className="w-full h-full">
+            <DiagramViewer xmlData={xmlData} />
           </div>
         )}
 
         {/* Draw.io Editor Mode */}
         {isEditing && (
-          <iframe
-            ref={iframeRef}
-            src={DRAWIO_URL}
-            className="w-full h-full border-none"
-            title="Draw.io Diagram Editor"
-          />
+          <div className="w-full h-full flex flex-col rounded-2xl border border-white/10 overflow-hidden bg-gray-900/80 shadow-[0_0_30px_rgba(37,99,235,0.07)]">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-gray-800/80 border-b border-gray-700/50 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500" />
+                <span className="text-xs font-semibold text-gray-300">
+                  Draw.io Editor — make your changes, then click Save
+                </span>
+              </div>
+              <span className="text-[11px] text-gray-500">
+                Changes auto-tracked · Save button top-right saves to cloud
+              </span>
+            </div>
+
+            {editorLoading && (
+              <div className="absolute inset-0 top-[37px] flex flex-col items-center justify-center bg-gray-900/95 z-10 gap-3">
+                <div className="w-12 h-12 rounded-full border-[3px] border-blue-500/20 border-t-blue-500 animate-spin" />
+                <p className="text-white font-semibold text-sm">Opening Editor</p>
+                <p className="text-gray-500 text-xs">Loading your diagram into the editor…</p>
+              </div>
+            )}
+
+            <iframe
+              ref={iframeRef}
+              src={DRAWIO_URL}
+              className="flex-1 w-full border-none block"
+              style={{ opacity: editorLoading ? 0 : 1, transition: "opacity 0.4s ease" }}
+              title="Draw.io Diagram Editor"
+            />
+          </div>
         )}
       </div>
     </div>
   );
 };
+
+if (!document.getElementById("editor-keyframes")) {
+  const s = document.createElement("style");
+  s.id = "editor-keyframes";
+  s.innerHTML = `
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  `;
+  document.head.appendChild(s);
+}
 
 export default DiagramEditor;
