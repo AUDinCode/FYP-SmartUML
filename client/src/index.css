@@ -1,27 +1,97 @@
 @import "tailwindcss";
 
-@layer components {
-  .uml-node-actor,
-  .uml-node-usecase {
-    @apply absolute hidden xl:flex items-center justify-center font-bold shadow-md backdrop-blur-sm transition-all text-white bg-white/20 border border-white/20;
-  }
-
-  .uml-node-actor {
-    @apply w-12 h-12 sm:w-14 sm:h-14 rounded-full;
-  }
-
-  .uml-node-usecase {
-    @apply w-24 h-14 sm:w-28 sm:h-16 rounded-full;
-  }
+/* ── Dark Studio Design Tokens ── */
+:root {
+  --ds-bg:           #0d0f14;
+  --ds-surface:      #13161e;
+  --ds-surface-2:    #1a1d28;
+  --ds-surface-3:    #1f2335;
+  --ds-border:       rgba(255,255,255,0.07);
+  --ds-border-hover: rgba(255,255,255,0.14);
+  --ds-accent:       #3b82f6;
+  --ds-accent-2:     #6366f1;
+  --ds-accent-3:     #8b5cf6;
+  --ds-glow:         rgba(59,130,246,0.18);
+  --ds-text:         #e2e8f0;
+  --ds-muted:        #64748b;
+  --ds-muted-2:      #475569;
+  --ds-sidebar-w:    260px;
 }
 
-/* Chrome, Safari aur Opera ke liye */
-.no-scrollbar::-webkit-scrollbar {
+* { box-sizing: border-box; }
+
+body {
+  background: var(--ds-bg);
+  color: var(--ds-text);
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--ds-surface-3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ds-muted-2); }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── UML nodes (AuthPage) ── */
+.uml-node-actor,
+.uml-node-usecase {
+  position: absolute;
   display: none;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+  color: white;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
 }
+@media (min-width: 1280px) {
+  .uml-node-actor, .uml-node-usecase { display: flex; }
+}
+.uml-node-actor   { width: 52px; height: 52px; border-radius: 50%; }
+.uml-node-usecase { width: 108px; height: 58px; border-radius: 9999px; }
 
-/* IE, Edge aur Firefox ke liye */
-.no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+/* ── Glow button ── */
+.glow-btn {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  box-shadow: 0 0 20px rgba(59,130,246,0.25);
+  transition: box-shadow 0.2s, transform 0.1s;
 }
+.glow-btn:hover  { box-shadow: 0 0 32px rgba(59,130,246,0.42); }
+.glow-btn:active { transform: scale(0.98); }
+
+/* ── Fade-up card animation ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim-fade-up { animation: fadeUp 0.32s ease forwards; }
+
+/* ── Blink cursor ── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── DS Card ── */
+.ds-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ds-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 1;
+}
+.ds-card:hover { border-color: var(--ds-border-hover); }
+.ds-card:hover::before, .ds-card-active::before { opacity: 1; }
