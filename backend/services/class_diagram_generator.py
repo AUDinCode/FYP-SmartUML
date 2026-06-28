@@ -692,22 +692,6 @@ Return ONLY the JSON array:
 
             cur_y = 0
 
-            # Green stereotype circle + "C"
-            for val, st in [
-                ("",  "ellipse;whiteSpace=wrap;html=1;aspect=fixed;"
-                       "fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;"),
-                ("C", "text;html=1;strokeColor=none;fillColor=none;"
-                       "align=center;verticalAlign=middle;whiteSpace=wrap;"
-                       "fontSize=11;fontStyle=1;fontColor=#000000;"),
-            ]:
-                sid = str(cur);  cur += 1
-                xml.append(
-                    f'<mxCell id="{sid}" value="{val}" style="{st}" '
-                    f'vertex="1" parent="{cid}">'
-                    f'<mxGeometry x="5" y="5" width="20" height="20" as="geometry"/>'
-                    f'</mxCell>'
-                )
-
             # Class name header
             nst = "fontStyle=3" if is_abstract else "fontStyle=1"
             nid = str(cur);  cur += 1
@@ -742,7 +726,7 @@ Return ONLY the JSON array:
             # Attributes
             for raw in attrs:
                 t = str(raw).strip()
-                indicator, content = ("▪ ", t[1:].strip()) if (t and t[0] in "-+#") else ("", t)
+                indicator, content = (t[0] + " ", t[1:].strip()) if (t and t[0] in "-+#~") else ("", t)
                 rid = str(cur);  cur += 1
                 xml.append(
                     f'<mxCell id="{rid}" '
@@ -762,7 +746,7 @@ Return ONLY the JSON array:
             # Methods
             for raw in methods:
                 t = str(raw).strip()
-                indicator, content = ("▪ ", t[1:].strip()) if (t and t[0] in "-+#") else ("", t)
+                indicator, content = (t[0] + " ", t[1:].strip()) if (t and t[0] in "-+#~") else ("", t)
                 mid_id = str(cur);  cur += 1
                 xml.append(
                     f'<mxCell id="{mid_id}" '
@@ -780,14 +764,19 @@ Return ONLY the JSON array:
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         # EDGE XML
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        skipped_ac_rels = set()
         pair_count: Dict[Tuple[str, str], int] = {}
         for r in relationships:
             ss = self._sanitize(r.get("from", ""))
             ts = self._sanitize(r.get("to",   ""))
+            if (r.get("from", ""), r.get("to", "")) in skipped_ac_rels:
+                continue
             if ss in node_map and ts in node_map:
-                pair_count[(ss, ts)] = pair_count.get((ss, ts), 0) + 1
+                key = tuple(sorted([ss, ts]))
+                pair_count[key] = pair_count.get(key, 0) + 1
 
         pair_idx: Dict[Tuple[str, str], int] = {}
+        inh_idx: Dict[str, int] = defaultdict(int)
 
         for rel in relationships:
             src_raw = rel.get("from", "")
@@ -803,9 +792,11 @@ Return ONLY the JSON array:
                 continue
             if src_raw not in positions or tgt_raw not in positions:
                 continue
+            if (src_raw, tgt_raw) in skipped_ac_rels:
+                continue
 
             eid  = str(cur);  cur += 1
-            key  = (src_s, tgt_s)
+            key  = tuple(sorted([src_s, tgt_s]))
             eidx = pair_idx.get(key, 0);  pair_idx[key] = eidx + 1
             etot = pair_count.get(key, 1)
 

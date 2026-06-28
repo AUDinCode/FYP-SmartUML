@@ -71,13 +71,13 @@ SECONDARY_KEYWORDS: Set[str] = {
 # ───────────────────────────────────────────────────────────────────────────────
 def _esc(text: Optional[str]) -> str:
     """
-    XML-escape for Draw.io mxCell value attributes.
-    Uses html.escape() ONLY — no regex stripping.
-    <<include>>  →  &lt;&lt;include&gt;&gt;   ✓
+    Double HTML-escape for Draw.io mxCell value attributes to support html=1.
+    Prevents browser from parsing <<include>> / <<extend>> as HTML tags.
     """
     if not text:
         return ""
-    return html.escape(str(text).strip(), quote=True)
+    first = html.escape(str(text).strip())
+    return html.escape(first, quote=True)
 
 
 def _safe_id(label: str) -> str:
@@ -108,7 +108,6 @@ class UseCaseDiagramGenerator:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel("models/gemini-flash-latest")
 
-    # ── Prompt ───────────────────────────────────────────────────────────────────
     def construct_prompt(self, scenario: str) -> str:
         return f"""
 You are a UML Use Case Diagram expert. Return ONLY a valid JSON array — no markdown, no explanation.
@@ -120,15 +119,19 @@ JSON structure:
   {{"label": "Withdraw Cash", "type": "UseCase"}},
   {{"label": "Authenticate",  "type": "UseCase"}},
   {{"label": "Print Receipt", "type": "UseCase"}},
+  {{"label": "Apply Fee",      "type": "UseCase"}},
   {{"label": "Customer",      "connectsTo": "Withdraw Cash"}},
   {{"label": "Withdraw Cash", "connectsTo": "Authenticate",  "connectionLabel": "<<include>>"}},
   {{"label": "Withdraw Cash", "connectsTo": "Print Receipt", "connectionLabel": "<<include>>"}},
+  {{"label": "Apply Fee",      "connectsTo": "Withdraw Cash", "connectionLabel": "<<extend>>"}},
   {{"label": "Bank Server",   "connectsTo": "Authenticate"}}
 ]
 
 STRICT RULES:
 1. Actor types: Primary = human users. Secondary = external systems (Server, API, Gateway, Database).
 2. connectionLabel MUST be exactly "<<include>>" or "<<extend>>" — use DOUBLE angle brackets.
+    - For "<<include>>", the arrow points from the Base Use Case to the Inclusion Use Case (e.g. {{"label": "BaseUseCase", "connectsTo": "InclusionUseCase", "connectionLabel": "<<include>>"}}).
+   - For "<<extend>>", the arrow points from the Extension Use Case to the Base Use Case (e.g. {{"label": "ExtensionUseCase", "connectsTo": "BaseUseCase", "connectionLabel": "<<extend>>"}}).
 3. Actor→UseCase and UseCase→Actor associations must have NO connectionLabel field.
 4. Every actor must have at least one connection to a use case.
 5. Return ONLY the JSON array. No text before or after.
@@ -328,7 +331,9 @@ JSON:
             tid = _safe_id(tgt)
             clo = cl.lower()
 
-            if src in all_actors or tgt in all_actors:
+            if src in all_actors and tgt in all_actors:
+                g.edge(sid, tid, dir="forward", arrowhead="onormal", style="solid", label="")
+            elif src in all_actors or tgt in all_actors:
                 g.edge(sid, tid, dir="none", style="solid", label="")
             elif "include" in clo or "extend" in clo:
                 g.edge(
@@ -411,12 +416,13 @@ JSON:
         positions:   Dict[str, Tuple[int, int, int, int]],
     ) -> str:
 
-        parts: List[str] = [
+        nodes_xml: List[str] = [
             '<mxGraphModel>',
             '<root>',
             '<mxCell id="0"/>',
             '<mxCell id="1" parent="0"/>',
         ]
+        edges_xml: List[str] = []
         node_map:  Dict[str, str] = {}
         cell_id    = 100
         all_actors = set(primary + secondary)
@@ -426,7 +432,7 @@ JSON:
         # All nodes remain at parent="1" so edges never cross parent boundaries.
         sx, sy, sw, sh = self._system_bbox(use_cases, positions)
         sys_rect_id = str(cell_id); cell_id += 1
-        parts.append(
+        nodes_xml.append(
             f'<mxCell id="{sys_rect_id}" value="System" '
             f'style="text;html=1;strokeColor=#000000;fillColor=none;'
             f'align=center;verticalAlign=top;spacingTop=4;fontSize=14;fontStyle=1;'
@@ -437,7 +443,7 @@ JSON:
         )
         # Separate border rectangle so the label doesn't fight with the box stroke
         border_id = str(cell_id); cell_id += 1
-        parts.append(
+        nodes_xml.append(
             f'<mxCell id="{border_id}" value="" '
             f'style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;'
             f'strokeColor=#000000;strokeWidth=2;pointerEvents=0;" '
@@ -455,10 +461,10 @@ JSON:
             x = cx - ACTOR_W // 2
             y = cy - ACTOR_H // 2
             nid = str(cell_id); node_map[actor] = nid; cell_id += 1
-            parts.append(
+            nodes_xml.append(
                 f'<mxCell id="{nid}" value="{_esc(actor)}" '
                 f'style="shape=umlActor;verticalLabelPosition=bottom;'
-                f'verticalAlign=top;html=1;whiteSpace=wrap;" '
+                f'verticalAlign=top;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" '
                 f'vertex="1" parent="1">'
                 f'<mxGeometry x="{x}" y="{y}" '
                 f'width="{ACTOR_W}" height="{ACTOR_H}" as="geometry"/>'
@@ -474,9 +480,9 @@ JSON:
             x = cx - UC_W // 2
             y = cy - UC_H // 2
             nid = str(cell_id); node_map[uc] = nid; cell_id += 1
-            parts.append(
+            nodes_xml.append(
                 f'<mxCell id="{nid}" value="{_esc(uc)}" '
-                f'style="ellipse;whiteSpace=wrap;html=1;fontSize=11;" '
+                f'style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" '
                 f'vertex="1" parent="1">'
                 f'<mxGeometry x="{x}" y="{y}" '
                 f'width="{UC_W}" height="{UC_H}" as="geometry"/>'
@@ -506,14 +512,15 @@ JSON:
             clo = cl.lower()
             eid = str(cell_id); cell_id += 1
 
-            if src_lbl in all_actors or tgt_lbl in all_actors:
+            if src_lbl in all_actors and tgt_lbl in all_actors:
+                style = BASE_GEN
+                value = ""
+            elif src_lbl in all_actors or tgt_lbl in all_actors:
                 style = BASE_ASSOC
                 value = ""
 
             elif "include" in clo or "extend" in clo:
                 style = BASE_DEP
-                # _esc() uses html.escape() only — no stripping.
-                # <<include>> → &lt;&lt;include&gt;&gt; → Draw.io shows <<include>>
                 value = _esc(cl)
 
             elif "generali" in clo or "inherit" in clo:
@@ -524,7 +531,7 @@ JSON:
                 style = BASE_ASSOC
                 value = _esc(cl)
 
-            parts.append(
+            edges_xml.append(
                 f'<mxCell id="{eid}" value="{value}" style="{style}" '
                 f'edge="1" parent="1" '
                 f'source="{node_map[src_lbl]}" target="{node_map[tgt_lbl]}">'
@@ -532,8 +539,12 @@ JSON:
                 f'</mxCell>'
             )
 
-        parts += ["</root>", "</mxGraphModel>"]
-        return "".join(parts)
+        # Combine: root element stuff first, then edges, then nodes, then closing tags
+        # Drawing edges before nodes makes them render in the background!
+        header = nodes_xml[:4]
+        only_nodes = nodes_xml[4:]
+        final_parts = header + edges_xml + only_nodes + ["</root>", "</mxGraphModel>"]
+        return "".join(final_parts)
 
     # ── Public entry point ────────────────────────────────────────────────────────
     def generate_diagram(self, prompt: str) -> str:
