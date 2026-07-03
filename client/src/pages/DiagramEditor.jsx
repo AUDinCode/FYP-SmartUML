@@ -267,7 +267,7 @@ const DiagramEditor = () => {
         );
         setEditorLoading(false);
         iframeRef.current?.contentWindow.postMessage(
-          JSON.stringify({ action: "load", autosave: 0, xml: xmlData }), "*"
+          JSON.stringify({ action: "load", autosave: 1, xml: xmlData }), "*"
         );
       }
       if (data.event === "save" || data.event === "autosave") {
