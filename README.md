@@ -185,9 +185,9 @@ FYP-SmartUML/
 
 We are three friends collaborating on this Final Year Project (FYP):
 
-- **Contributor 1** - [GitHub Profile](https://github.com/)
-- **Contributor 2** - [GitHub Profile](https://github.com/)
-- **Contributor 3** - [GitHub Profile](https://github.com/)
+- **Ausaf Uddin Ahmed** - [@AUDinCode](https://github.com/AUDinCode)
+- **Shaheer Kayani** - [@ShaheerKayani145](https://github.com/ShaheerKayani145)
+- **Hassan** - [@hassann783](https://github.com/hassann783)
 
 ---
 
