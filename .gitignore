@@ -18,3 +18,7 @@ venv/
 .env
 backend/.env
 client/.env
+
+# Build outputs
+dist/
+client/dist/
